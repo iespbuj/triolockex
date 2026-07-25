@@ -8,26 +8,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
 
 :root{
-  --bg: #0b0d13;
-  --bg-elev: #12151e;
-  --panel: #191d29;
-  --panel-2: #1f2433;
-  --border: #2a2f40;
-  --silver: #c9cfdd;
-  --silver-dim: #7d8497;
-  --silver-bright: #f1f3f8;
-  --accent: #9fb2da;
-  --accent-dim: #556488;
-  --danger: #d1495b;
-  --danger-dim: #7a3138;
-  --gold: #c9a86a;
+  --bg: #070b18;
+  --bg-elev: #0e1730;
+  --panel: #121c3a;
+  --panel-2: #172447;
+  --border: #2c3f6e;
+  --silver: #c3d0f2;
+  --silver-dim: #7488b8;
+  --silver-bright: #eef3ff;
+  --accent: #4f7fff;
+  --accent-dim: #2c4a94;
+  --danger: #e0435f;
+  --danger-dim: #7a2138;
+  --gold: #dab566;
 }
 
 *{ box-sizing: border-box; }
 html,body{ margin:0; padding:0; }
 
 body{
-  background: radial-gradient(ellipse at 50% -10%, #1b2033 0%, var(--bg) 55%);
+  background: radial-gradient(ellipse at 50% -10%, #16244f 0%, var(--bg) 55%);
   color: var(--silver);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
@@ -49,8 +49,19 @@ header::before{
   content:"";
   position:absolute; top:-120px; left:50%; transform:translateX(-50%);
   width: 480px; height: 240px;
-  background: radial-gradient(circle, rgba(159,178,218,0.16) 0%, rgba(159,178,218,0) 70%);
+  background: radial-gradient(circle, rgba(79,127,255,0.20) 0%, rgba(79,127,255,0) 70%);
   pointer-events:none;
+}
+.mega-stone{
+  width: 20px; height: 20px; margin: 0 auto 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, #b98bff 50%, var(--gold) 100%);
+  transform: rotate(45deg);
+  box-shadow: 0 0 18px rgba(79,127,255,0.55), 0 0 30px rgba(185,139,255,0.25);
+  animation: mega-pulse 3.2s ease-in-out infinite;
+}
+@keyframes mega-pulse{
+  0%,100%{ box-shadow: 0 0 18px rgba(79,127,255,0.55), 0 0 30px rgba(185,139,255,0.25); }
+  50%{ box-shadow: 0 0 26px rgba(79,127,255,0.8), 0 0 42px rgba(185,139,255,0.4); }
 }
 .logo{
   font-family: 'Rajdhani', sans-serif;
@@ -1201,6 +1212,7 @@ footer{
 <body>
 
 <header>
+  <div class="mega-stone"></div>
   <h1 class="logo" onclick="go('home')">TRIOLOCKE</h1>
   <div class="subtitle">Pokémon X · Iker · Joel · Alex</div>
   <nav>
@@ -1605,6 +1617,7 @@ const MATCH1_LOSER_WHEEL = [
 let hearts = {}, teams = {}, history = [], tradesActive = [], tradesHistory = [];
 let tickets = {}, pendingPrizes = {};
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
+let money = {}, badgesRaw = {}; // sincronizados automáticamente por vidas_watcher.py desde el save
 const DAILY_BONUS_AMOUNT = 10;
 let normas = [];
 let sancionState = { offender: null, prize: null };
@@ -1810,7 +1823,7 @@ async function storeSet(key, val){
 
 async function loadAll(){
   const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult] = await Promise.all([
-    Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null}))),
+    Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
     storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
@@ -1825,6 +1838,8 @@ async function loadAll(){
     tickets[t] = profileResults[i].tickets || 0;
     pendingPrizes[t] = profileResults[i].pendingPrizes || [];
     dailyBonusDate[t] = profileResults[i].dailyBonusDate || null;
+    money[t] = profileResults[i].money || 0;
+    badgesRaw[t] = profileResults[i].badges || 0;
   });
   history = historyResult;
   tradesActive = tradesResult.active;
@@ -1837,7 +1852,7 @@ async function loadAll(){
   loaded = true;
 }
 async function saveProfile(t){
-  return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null });
+  return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, money: money[t]||0, badges: badgesRaw[t]||0 });
 }
 
 const ROULETTE_LIFE_RISK = 0.05; // 5% de posibilidades de perder 1 vida automáticamente al girar una ruleta del casino
@@ -2016,6 +2031,13 @@ function render(){
 function combatWinsOf(t){
   return duelHistory.filter(d=> d.champion === t).length;
 }
+function gymBadgesOf(t){
+  const raw = badgesRaw[t]||0;
+  return Array.from({length:8}, (_,i)=> (raw & (1<<i)) !== 0);
+}
+function gymBadgeCountOf(t){
+  return gymBadgesOf(t).filter(Boolean).length;
+}
 // Ranking por medallas: primero combates ganados, y si hay empate, se desempata por vidas.
 function getMedalRanking(){
   const ranked = [...TRAINERS].sort((a,b)=>{
@@ -2121,6 +2143,7 @@ function renderHome(app){
           <div class="trainer-name">${NAMES[t]}</div>
           <div class="hearts-count ${h<0?'danger':''}">${h}<small>/20</small></div>
           <div class="combat-count">🏆 ${wins} combate${wins===1?'':'s'} ganado${wins===1?'':'s'}</div>
+          <div class="combat-count" style="margin-top:2px;">🏅 ${gymBadgeCountOf(t)}/8 · 💰 ${(money[t]||0).toLocaleString('es-ES')}</div>
           <div class="mini-team">
             ${Array.from({length:6}).map((_,i)=>{
               const p = teams[t][i];
@@ -2158,6 +2181,18 @@ function renderProfile(app, t){
         <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
         <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
         <button class="ghost" onclick="openApplySancion()">⚖️ Aplicar sanción</button>
+      </div>
+    </div>
+
+    <div class="hearts-panel" style="padding:18px 24px;">
+      <div class="mono" style="font-size:13px;color:var(--silver-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Progreso en el juego</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:13px;color:var(--silver-dim);">💰 Dinero</div>
+        <div class="mono" style="font-size:18px;color:var(--silver-bright);">${(money[t]||0).toLocaleString('es-ES')}</div>
+      </div>
+      <div style="font-size:13px;color:var(--silver-dim);margin-bottom:8px;">🏅 Medallas (${gymBadgeCountOf(t)}/8)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${gymBadgesOf(t).map((got,i)=>`<div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;border:1px solid ${got?'var(--gold)':'var(--border)'};background:${got?'radial-gradient(circle,var(--gold),#8a6a2e)':'var(--panel-2)'};color:${got?'#1c140a':'var(--silver-dim)'};" title="Medalla ${i+1}">${i+1}</div>`).join('')}
       </div>
     </div>
 
@@ -3796,6 +3831,9 @@ async function resetLives(t){
 const TRAINER_CARD_BASE = 0x14000;
 const OT_NAME_OFFSET = 0x48; // relativo -> 0x14048
 const MONEY_OFFSET = 0x4208; // absoluto
+const BADGES_OFFSET = 0x420c; // uint32 LE, bit N = medalla N -- CONFIRMADO comparando
+// save real con medalla vs. copia editada en PKHeX con esa misma medalla
+// desmarcada (unico campo de contenido que cambio, aparte de checksums).
 const PARTY_BASE = 0x14200; // absoluto
 const PARTY_SLOT_SIZE = 0x104; // 260 bytes
 const PARTY_SLOTS = 6;
@@ -3954,6 +3992,11 @@ function parseXYSave(buffer) {
 
   const money = view.getUint32(MONEY_OFFSET, true);
 
+  const badgesRaw = view.getUint32(BADGES_OFFSET, true);
+  const badges = [];
+  for (let i = 0; i < 8; i++) badges.push((badgesRaw & (1 << i)) !== 0);
+  const badgeCount = badges.filter(Boolean).length;
+
   const party = [];
   for (let slot = 0; slot < PARTY_SLOTS; slot++) {
     const off = PARTY_BASE + slot * PARTY_SLOT_SIZE;
@@ -3974,7 +4017,7 @@ function parseXYSave(buffer) {
     if (mons.length > 0) boxes.push({ box: box + 1, mons });
   }
 
-  return { trainerName: name, money, party, boxes };
+  return { trainerName: name, money, badges, badgeCount, party, boxes };
 }
 
 const NATURE_NAMES_ES = ['Fuerte','Huraña','Audaz','Firme','Pícara','Osada','Dócil','Plácida','Agitada','Floja','Miedosa','Activa','Seria','Alegre','Ingenua','Modesta','Afable','Mansa','Tímida','Alocada','Serena','Amable','Grosera','Cauta','Rara'];
@@ -4014,7 +4057,10 @@ async function handleSaveFile(t, file){
     const mismatch = result.trainerName && result.trainerName.toUpperCase() !== NAMES[t].toUpperCase();
     preview.innerHTML = `
       ${mismatch ? `<div class="err-msg" style="margin-bottom:10px;">⚠️ El save dice ser de "${result.trainerName}", pero estás importando para ${NAMES[t]}. Comprueba que sea el archivo correcto antes de continuar.</div>` : ''}
-      <div style="font-size:13px;margin-bottom:12px;color:var(--silver-dim);">💰 Dinero en el juego: <strong style="color:var(--silver-bright);">${result.money}</strong> · 📦 Cajas con Pokémon: <strong style="color:var(--silver-bright);">${result.boxes.reduce((n,b)=>n+b.mons.length,0)}</strong></div>
+      <div style="font-size:13px;margin-bottom:12px;color:var(--silver-dim);">💰 Dinero en el juego: <strong style="color:var(--silver-bright);">${result.money}</strong> · 🏅 Medallas: <strong style="color:var(--silver-bright);">${result.badgeCount}/8</strong> · 📦 Cajas con Pokémon: <strong style="color:var(--silver-bright);">${result.boxes.reduce((n,b)=>n+b.mons.length,0)}</strong></div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        ${result.badges.map((got,i)=>`<div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:1px solid ${got?'var(--gold)':'var(--border)'};background:${got?'radial-gradient(circle,var(--gold),#8a6a2e)':'var(--panel-2)'};color:${got?'#1c140a':'var(--silver-dim)'};" title="Medalla ${i+1}">${i+1}</div>`).join('')}
+      </div>
       <div class="section-label" style="margin:0 0 8px;text-align:left;">Equipo detectado (${result.party.length})</div>
       <div style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;margin-bottom:16px;">
         ${result.party.map(p=>`
