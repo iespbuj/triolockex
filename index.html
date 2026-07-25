@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Triolocke · X</title>
+<title>Triolocke · SoulSilver</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -1197,7 +1197,7 @@ footer{
 
 <header>
   <h1 class="logo" onclick="go('home')">TRIOLOCKE</h1>
-  <div class="subtitle">Pokémon X · Iker · Joel · Alex</div>
+  <div class="subtitle">Pokémon SoulSilver · Iker · Joel · Alex</div>
   <nav>
     <button class="nav-btn" data-nav="home" onclick="go('home')">Inicio</button>
     <button class="nav-btn" data-nav="history" onclick="go('history')">Historial</button>
@@ -1608,9 +1608,9 @@ let sancionWheelRotation = 0;
 
 /* ---------------- CASINO ---------------- */
 const SLOT_MACHINES = [
-  { id:'vida',      name:'Guardián de la Vida',  emoji:'🦌', legendaries:['Xerneas'], img:'slotBeasts',    line:'La eternidad no espera. Tira ya.' },
-  { id:'equilibrio',name:'Guardián del Equilibrio', emoji:'🐍', legendaries:['Zygarde'], img:'slotGuardians', line:'El orden de Kalos, en tus manos.' },
-  { id:'mitos',     name:'Mitos de Kalos',       emoji:'💎', legendaries:['Diancie','Hoopa','Volcanion'], img:'slotTime',      line:'Rarezas de cine. Solo para los más suertudos.' },
+  { id:'beasts',    name:'Bestias Legendarias',  emoji:'🐆', legendaries:['Raikou','Entei','Suicune'], img:'slotBeasts',    line:'Tira de la palanca cuando quieras.' },
+  { id:'guardians', name:'Guardianes de Johto',  emoji:'🕊️', legendaries:['Ho-Oh','Lugia'], img:'slotGuardians', line:'Los guardianes no esperan a nadie... tira ya.' },
+  { id:'time',      name:'Guardián del Tiempo',  emoji:'🌿', legendaries:['Celebi'], img:'slotTime',      line:'El tiempo vuela. Celebi no. Dale a la palanca.' },
   { id:'kanto',     name:'Aves de Kanto',        emoji:'🦅', legendaries:['Articuno','Zapdos','Moltres'], img:'slotKanto',     line:'Vieja escuela, viejas máquinas. Mucha suerte.' }
 ];
 const SLOT_SPIN_COST = 1;
@@ -1805,14 +1805,14 @@ async function storeSet(key, val){
 
 async function loadAll(){
   const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult] = await Promise.all([
-    Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null}))),
-    storeGet('x:history', []),
-    storeGet('x:trades', {active:[], history:[]}),
-    storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
-    storeGet('x:duelHistory', []),
-    storeGet('x:normas', []),
-    storeGet('x:sancion', { offender: null, prize: null }),
-    storeGet('x:loteria', { pot: 0, entries: [], history: [] })
+    Promise.all(TRAINERS.map(t => storeGet('profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null}))),
+    storeGet('history', []),
+    storeGet('trades', {active:[], history:[]}),
+    storeGet('duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
+    storeGet('duelHistory', []),
+    storeGet('normas', []),
+    storeGet('sancion', { offender: null, prize: null }),
+    storeGet('loteria', { pot: 0, entries: [], history: [] })
   ]);
   TRAINERS.forEach((t, i) => {
     hearts[t] = profileResults[i].hearts;
@@ -1832,7 +1832,7 @@ async function loadAll(){
   loaded = true;
 }
 async function saveProfile(t){
-  return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null });
+  return await storeSet('profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null });
 }
 
 const ROULETTE_LIFE_RISK = 0.05; // 5% de posibilidades de perder 1 vida automáticamente al girar una ruleta del casino
@@ -1862,22 +1862,22 @@ async function checkDailyBonus(t){
   if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
 }
 async function saveTrades(){
-  return await storeSet('x:trades', { active: tradesActive, history: tradesHistory });
+  return await storeSet('trades', { active: tradesActive, history: tradesHistory });
 }
 async function saveDuelState(){
-  return await storeSet('x:duel', duelState);
+  return await storeSet('duel', duelState);
 }
 async function saveDuelHistory(){
-  return await storeSet('x:duelHistory', duelHistory);
+  return await storeSet('duelHistory', duelHistory);
 }
 async function saveNormas(){
-  return await storeSet('x:normas', normas);
+  return await storeSet('normas', normas);
 }
 async function saveSancion(){
-  return await storeSet('x:sancion', sancionState);
+  return await storeSet('sancion', sancionState);
 }
 async function saveLoteria(){
-  return await storeSet('x:loteria', loteria);
+  return await storeSet('loteria', loteria);
 }
 
 function fmtTime(ts){
@@ -1937,7 +1937,7 @@ window.addEventListener('beforeunload', (e)=>{
 function pushHistory(text){
   history.unshift({id: crypto.randomUUID(), text, ts: Date.now()});
   history = history.slice(0, 300);
-  storeSet('x:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>storeSet('x:history', history)); });
+  storeSet('history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>storeSet('history', history)); });
 }
 
 async function addTickets(t, amount, reason){
@@ -2174,7 +2174,10 @@ function renderProfile(app, t){
       `).join('')}
     </div>`}
 
-    <div class="section-label">Equipo principal</div>
+    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <span>Equipo principal</span>
+      <button class="ghost" style="font-size:12px;padding:6px 12px;" onclick="openImportSave('${t}')">📥 Importar desde save</button>
+    </div>
     <div class="team-grid">
       ${Array.from({length:6}).map((_,i)=>{
         const p = teams[t][i];
@@ -3752,6 +3755,297 @@ async function removePoke(t, id){
   }
   if(p) pushHistory(`➖ ${NAMES[t]} quitó a ${p.nickname} (${p.species}) de su equipo`);
   render();
+}
+
+/**
+ * Parser de saves de Pokémon X/Y (archivo "main" de Azahar/Citra, 415232 bytes).
+ *
+ * Offsets validados contra saves reales (Iker, Julio 2026):
+ *   - Nombre de entrenador: "IKER" -> confirmado
+ *   - Dinero: 3000 -> 1800 tras gastar 1200 en pociones -> confirmado
+ *   - Equipo: PARTY_BASE = 0x14200, 6 slots de 260 bytes -> confirmado
+ *     (Shinx, Skrelp con nivel/exp exactos)
+ *   - Cajas: BOX_BASE = 0x22600, 31 cajas x 30 slots x 232 bytes -> CONFIRMADO
+ *     por fuerza bruta de checksum sobre las 31 cajas completas (930 slots):
+ *     927 con especie=0 (vacios reales) y exactamente 3 con especie valida,
+ *     coincidiendo con los 2 Volcanion + 1 Vullaby que Iker deposito.
+ *
+ * Changelog:
+ *   - FIX (aportado por Iker, confirmado con checksum): isEmptySlot() NO debe
+ *     mirar solo si el PID/EC (offset 0) es cero. Un Pokemon real puede tener
+ *     Encryption Constant = 0 (p.ej. inyectado con un editor de saves sin
+ *     randomizarlo) y seguia siendo un Pokemon valido y con checksum correcto;
+ *     se estaba descartando en silencio. Ahora "vacio" se decide DESPUES de
+ *     descifrar, mirando si la especie es 0 (o fuera de rango 1-721), no antes.
+ *   - FIX: SPECIES_NAMES tenia la 192 mal puesta como "Sunkern" (es Sunflora;
+ *     Sunkern es la 191).
+ *   - NUEVO: BOX_BASE / BOX_STRIDE / BOXES / BOX_SLOTS para leer las 31 cajas.
+ *   - NUEVO: tabla completa de las 721 especies (Kanto-Kalos), generada desde
+ *     el dex nacional para no tener que ir anadiendolas a mano.
+ *   - NUEVO: se lee el apodo (nickname) de cada Pokemon.
+ *   - AVISO: el campo "heldItem" (offset 0x0A) da el mismo valor (279) para
+ *     Pokemon distintos en las pruebas hechas hasta ahora -> probablemente el
+ *     offset esta mal. Se deja en el resultado pero marcado como no fiable
+ *     hasta verificarlo con un Pokemon que SI lleve un obj075 conocido.
+ */
+
+const TRAINER_CARD_BASE = 0x14000;
+const OT_NAME_OFFSET = 0x48; // relativo -> 0x14048
+const MONEY_OFFSET = 0x4208; // absoluto
+const PARTY_BASE = 0x14200; // absoluto
+const PARTY_SLOT_SIZE = 0x104; // 260 bytes
+const PARTY_SLOTS = 6;
+
+const BOX_BASE = 0x22600; // caja 1, slot 0 -- CONFIRMADO con checksum
+const BOX_SLOT_SIZE = 232; // formato EK6 (sin datos de combate)
+const BOX_SLOTS = 30; // slots por caja
+const BOX_STRIDE = BOX_SLOTS * BOX_SLOT_SIZE; // 6960 bytes por caja
+const BOXES = 31;
+
+const EXPECTED_SIZE = 415232;
+
+// Tabla de orden de bloques (idéntica a PKHeX PokeCrypto.BlockPosition)
+const BLOCK_POSITION = [
+  0, 1, 2, 3, 0, 1, 3, 2, 0, 2, 1, 3, 0, 3, 1, 2,
+  0, 2, 3, 1, 0, 3, 2, 1, 1, 0, 2, 3, 1, 0, 3, 2,
+  2, 0, 1, 3, 3, 0, 1, 2, 2, 0, 3, 1, 3, 0, 2, 1,
+  1, 2, 0, 3, 1, 3, 0, 2, 2, 1, 0, 3, 3, 1, 0, 2,
+  2, 3, 0, 1, 3, 2, 0, 1, 1, 2, 3, 0, 1, 3, 2, 0,
+  2, 1, 3, 0, 3, 1, 2, 0, 2, 3, 1, 0, 3, 2, 1, 0,
+  0, 1, 2, 3, 0, 1, 3, 2, 0, 2, 1, 3, 0, 3, 1, 2,
+  0, 2, 3, 1, 0, 3, 2, 1, 1, 0, 2, 3, 1, 0, 3, 2,
+];
+
+// Tabla completa del dex nacional 1-721 (Kanto-Kalos). Generada una vez desde
+// una fuente fiable; no hace falta tocarla salvo que aparezcan formas
+// especiales que querais nombrar distinto.
+const SPECIES_NAMES = { 1:"Bulbasaur", 2:"Ivysaur", 3:"Venusaur", 4:"Charmander", 5:"Charmeleon", 6:"Charizard", 7:"Squirtle", 8:"Wartortle", 9:"Blastoise", 10:"Caterpie", 11:"Metapod", 12:"Butterfree", 13:"Weedle", 14:"Kakuna", 15:"Beedrill", 16:"Pidgey", 17:"Pidgeotto", 18:"Pidgeot", 19:"Rattata", 20:"Raticate", 21:"Spearow", 22:"Fearow", 23:"Ekans", 24:"Arbok", 25:"Pikachu", 26:"Raichu", 27:"Sandshrew", 28:"Sandslash", 29:"Nidoran-F", 30:"Nidorina", 31:"Nidoqueen", 32:"Nidoran-M", 33:"Nidorino", 34:"Nidoking", 35:"Clefairy", 36:"Clefable", 37:"Vulpix", 38:"Ninetales", 39:"Jigglypuff", 40:"Wigglytuff", 41:"Zubat", 42:"Golbat", 43:"Oddish", 44:"Gloom", 45:"Vileplume", 46:"Paras", 47:"Parasect", 48:"Venonat", 49:"Venomoth", 50:"Diglett", 51:"Dugtrio", 52:"Meowth", 53:"Persian", 54:"Psyduck", 55:"Golduck", 56:"Mankey", 57:"Primeape", 58:"Growlithe", 59:"Arcanine", 60:"Poliwag", 61:"Poliwhirl", 62:"Poliwrath", 63:"Abra", 64:"Kadabra", 65:"Alakazam", 66:"Machop", 67:"Machoke", 68:"Machamp", 69:"Bellsprout", 70:"Weepinbell", 71:"Victreebel", 72:"Tentacool", 73:"Tentacruel", 74:"Geodude", 75:"Graveler", 76:"Golem", 77:"Ponyta", 78:"Rapidash", 79:"Slowpoke", 80:"Slowbro", 81:"Magnemite", 82:"Magneton", 83:"Farfetch'd", 84:"Doduo", 85:"Dodrio", 86:"Seel", 87:"Dewgong", 88:"Grimer", 89:"Muk", 90:"Shellder", 91:"Cloyster", 92:"Gastly", 93:"Haunter", 94:"Gengar", 95:"Onix", 96:"Drowzee", 97:"Hypno", 98:"Krabby", 99:"Kingler", 100:"Voltorb", 101:"Electrode", 102:"Exeggcute", 103:"Exeggutor", 104:"Cubone", 105:"Marowak", 106:"Hitmonlee", 107:"Hitmonchan", 108:"Lickitung", 109:"Koffing", 110:"Weezing", 111:"Rhyhorn", 112:"Rhydon", 113:"Chansey", 114:"Tangela", 115:"Kangaskhan", 116:"Horsea", 117:"Seadra", 118:"Goldeen", 119:"Seaking", 120:"Staryu", 121:"Starmie", 122:"Mr. Mime", 123:"Scyther", 124:"Jynx", 125:"Electabuzz", 126:"Magmar", 127:"Pinsir", 128:"Tauros", 129:"Magikarp", 130:"Gyarados", 131:"Lapras", 132:"Ditto", 133:"Eevee", 134:"Vaporeon", 135:"Jolteon", 136:"Flareon", 137:"Porygon", 138:"Omanyte", 139:"Omastar", 140:"Kabuto", 141:"Kabutops", 142:"Aerodactyl", 143:"Snorlax", 144:"Articuno", 145:"Zapdos", 146:"Moltres", 147:"Dratini", 148:"Dragonair", 149:"Dragonite", 150:"Mewtwo", 151:"Mew", 152:"Chikorita", 153:"Bayleef", 154:"Meganium", 155:"Cyndaquil", 156:"Quilava", 157:"Typhlosion", 158:"Totodile", 159:"Croconaw", 160:"Feraligatr", 161:"Sentret", 162:"Furret", 163:"Hoothoot", 164:"Noctowl", 165:"Ledyba", 166:"Ledian", 167:"Spinarak", 168:"Ariados", 169:"Crobat", 170:"Chinchou", 171:"Lanturn", 172:"Pichu", 173:"Cleffa", 174:"Igglybuff", 175:"Togepi", 176:"Togetic", 177:"Natu", 178:"Xatu", 179:"Mareep", 180:"Flaaffy", 181:"Ampharos", 182:"Bellossom", 183:"Marill", 184:"Azumarill", 185:"Sudowoodo", 186:"Politoed", 187:"Hoppip", 188:"Skiploom", 189:"Jumpluff", 190:"Aipom", 191:"Sunkern", 192:"Sunflora", 193:"Yanma", 194:"Wooper", 195:"Quagsire", 196:"Espeon", 197:"Umbreon", 198:"Murkrow", 199:"Slowking", 200:"Misdreavus", 201:"Unown", 202:"Wobbuffet", 203:"Girafarig", 204:"Pineco", 205:"Forretress", 206:"Dunsparce", 207:"Gligar", 208:"Steelix", 209:"Snubbull", 210:"Granbull", 211:"Qwilfish", 212:"Scizor", 213:"Shuckle", 214:"Heracross", 215:"Sneasel", 216:"Teddiursa", 217:"Ursaring", 218:"Slugma", 219:"Magcargo", 220:"Swinub", 221:"Piloswine", 222:"Corsola", 223:"Remoraid", 224:"Octillery", 225:"Delibird", 226:"Mantine", 227:"Skarmory", 228:"Houndour", 229:"Houndoom", 230:"Kingdra", 231:"Phanpy", 232:"Donphan", 233:"Porygon2", 234:"Stantler", 235:"Smeargle", 236:"Tyrogue", 237:"Hitmontop", 238:"Smoochum", 239:"Elekid", 240:"Magby", 241:"Miltank", 242:"Blissey", 243:"Raikou", 244:"Entei", 245:"Suicune", 246:"Larvitar", 247:"Pupitar", 248:"Tyranitar", 249:"Lugia", 250:"Ho-Oh", 251:"Celebi", 252:"Treecko", 253:"Grovyle", 254:"Sceptile", 255:"Torchic", 256:"Combusken", 257:"Blaziken", 258:"Mudkip", 259:"Marshtomp", 260:"Swampert", 261:"Poochyena", 262:"Mightyena", 263:"Zigzagoon", 264:"Linoone", 265:"Wurmple", 266:"Silcoon", 267:"Beautifly", 268:"Cascoon", 269:"Dustox", 270:"Lotad", 271:"Lombre", 272:"Ludicolo", 273:"Seedot", 274:"Nuzleaf", 275:"Shiftry", 276:"Taillow", 277:"Swellow", 278:"Wingull", 279:"Pelipper", 280:"Ralts", 281:"Kirlia", 282:"Gardevoir", 283:"Surskit", 284:"Masquerain", 285:"Shroomish", 286:"Breloom", 287:"Slakoth", 288:"Vigoroth", 289:"Slaking", 290:"Nincada", 291:"Ninjask", 292:"Shedinja", 293:"Whismur", 294:"Loudred", 295:"Exploud", 296:"Makuhita", 297:"Hariyama", 298:"Azurill", 299:"Nosepass", 300:"Skitty", 301:"Delcatty", 302:"Sableye", 303:"Mawile", 304:"Aron", 305:"Lairon", 306:"Aggron", 307:"Meditite", 308:"Medicham", 309:"Electrike", 310:"Manectric", 311:"Plusle", 312:"Minun", 313:"Volbeat", 314:"Illumise", 315:"Roselia", 316:"Gulpin", 317:"Swalot", 318:"Carvanha", 319:"Sharpedo", 320:"Wailmer", 321:"Wailord", 322:"Numel", 323:"Camerupt", 324:"Torkoal", 325:"Spoink", 326:"Grumpig", 327:"Spinda", 328:"Trapinch", 329:"Vibrava", 330:"Flygon", 331:"Cacnea", 332:"Cacturne", 333:"Swablu", 334:"Altaria", 335:"Zangoose", 336:"Seviper", 337:"Lunatone", 338:"Solrock", 339:"Barboach", 340:"Whiscash", 341:"Corphish", 342:"Crawdaunt", 343:"Baltoy", 344:"Claydol", 345:"Lileep", 346:"Cradily", 347:"Anorith", 348:"Armaldo", 349:"Feebas", 350:"Milotic", 351:"Castform", 352:"Kecleon", 353:"Shuppet", 354:"Banette", 355:"Duskull", 356:"Dusclops", 357:"Tropius", 358:"Chimecho", 359:"Absol", 360:"Wynaut", 361:"Snorunt", 362:"Glalie", 363:"Spheal", 364:"Sealeo", 365:"Walrein", 366:"Clamperl", 367:"Huntail", 368:"Gorebyss", 369:"Relicanth", 370:"Luvdisc", 371:"Bagon", 372:"Shelgon", 373:"Salamence", 374:"Beldum", 375:"Metang", 376:"Metagross", 377:"Regirock", 378:"Regice", 379:"Registeel", 380:"Latias", 381:"Latios", 382:"Kyogre", 383:"Groudon", 384:"Rayquaza", 385:"Jirachi", 386:"Deoxys", 387:"Turtwig", 388:"Grotle", 389:"Torterra", 390:"Chimchar", 391:"Monferno", 392:"Infernape", 393:"Piplup", 394:"Prinplup", 395:"Empoleon", 396:"Starly", 397:"Staravia", 398:"Staraptor", 399:"Bidoof", 400:"Bibarel", 401:"Kricketot", 402:"Kricketune", 403:"Shinx", 404:"Luxio", 405:"Luxray", 406:"Budew", 407:"Roserade", 408:"Cranidos", 409:"Rampardos", 410:"Shieldon", 411:"Bastiodon", 412:"Burmy", 413:"Wormadam", 414:"Mothim", 415:"Combee", 416:"Vespiquen", 417:"Pachirisu", 418:"Buizel", 419:"Floatzel", 420:"Cherubi", 421:"Cherrim", 422:"Shellos", 423:"Gastrodon", 424:"Ambipom", 425:"Drifloon", 426:"Drifblim", 427:"Buneary", 428:"Lopunny", 429:"Mismagius", 430:"Honchkrow", 431:"Glameow", 432:"Purugly", 433:"Chingling", 434:"Stunky", 435:"Skuntank", 436:"Bronzor", 437:"Bronzong", 438:"Bonsly", 439:"Mime Jr.", 440:"Happiny", 441:"Chatot", 442:"Spiritomb", 443:"Gible", 444:"Gabite", 445:"Garchomp", 446:"Munchlax", 447:"Riolu", 448:"Lucario", 449:"Hippopotas", 450:"Hippowdon", 451:"Skorupi", 452:"Drapion", 453:"Croagunk", 454:"Toxicroak", 455:"Carnivine", 456:"Finneon", 457:"Lumineon", 458:"Mantyke", 459:"Snover", 460:"Abomasnow", 461:"Weavile", 462:"Magnezone", 463:"Lickilicky", 464:"Rhyperior", 465:"Tangrowth", 466:"Electivire", 467:"Magmortar", 468:"Togekiss", 469:"Yanmega", 470:"Leafeon", 471:"Glaceon", 472:"Gliscor", 473:"Mamoswine", 474:"Porygon-Z", 475:"Gallade", 476:"Probopass", 477:"Dusknoir", 478:"Froslass", 479:"Rotom", 480:"Uxie", 481:"Mesprit", 482:"Azelf", 483:"Dialga", 484:"Palkia", 485:"Heatran", 486:"Regigigas", 487:"Giratina", 488:"Cresselia", 489:"Phione", 490:"Manaphy", 491:"Darkrai", 492:"Shaymin", 493:"Arceus", 494:"Victini", 495:"Snivy", 496:"Servine", 497:"Serperior", 498:"Tepig", 499:"Pignite", 500:"Emboar", 501:"Oshawott", 502:"Dewott", 503:"Samurott", 504:"Patrat", 505:"Watchog", 506:"Lillipup", 507:"Herdier", 508:"Stoutland", 509:"Purrloin", 510:"Liepard", 511:"Pansage", 512:"Simisage", 513:"Pansear", 514:"Simisear", 515:"Panpour", 516:"Simipour", 517:"Munna", 518:"Musharna", 519:"Pidove", 520:"Tranquill", 521:"Unfezant", 522:"Blitzle", 523:"Zebstrika", 524:"Roggenrola", 525:"Boldore", 526:"Gigalith", 527:"Woobat", 528:"Swoobat", 529:"Drilbur", 530:"Excadrill", 531:"Audino", 532:"Timburr", 533:"Gurdurr", 534:"Conkeldurr", 535:"Tympole", 536:"Palpitoad", 537:"Seismitoad", 538:"Throh", 539:"Sawk", 540:"Sewaddle", 541:"Swadloon", 542:"Leavanny", 543:"Venipede", 544:"Whirlipede", 545:"Scolipede", 546:"Cottonee", 547:"Whimsicott", 548:"Petilil", 549:"Lilligant", 550:"Basculin", 551:"Sandile", 552:"Krokorok", 553:"Krookodile", 554:"Darumaka", 555:"Darmanitan", 556:"Maractus", 557:"Dwebble", 558:"Crustle", 559:"Scraggy", 560:"Scrafty", 561:"Sigilyph", 562:"Yamask", 563:"Cofagrigus", 564:"Tirtouga", 565:"Carracosta", 566:"Archen", 567:"Archeops", 568:"Trubbish", 569:"Garbodor", 570:"Zorua", 571:"Zoroark", 572:"Minccino", 573:"Cinccino", 574:"Gothita", 575:"Gothorita", 576:"Gothitelle", 577:"Solosis", 578:"Duosion", 579:"Reuniclus", 580:"Ducklett", 581:"Swanna", 582:"Vanillite", 583:"Vanillish", 584:"Vanilluxe", 585:"Deerling", 586:"Sawsbuck", 587:"Emolga", 588:"Karrablast", 589:"Escavalier", 590:"Foongus", 591:"Amoonguss", 592:"Frillish", 593:"Jellicent", 594:"Alomomola", 595:"Joltik", 596:"Galvantula", 597:"Ferroseed", 598:"Ferrothorn", 599:"Klink", 600:"Klang", 601:"Klinklang", 602:"Tynamo", 603:"Eelektrik", 604:"Eelektross", 605:"Elgyem", 606:"Beheeyem", 607:"Litwick", 608:"Lampent", 609:"Chandelure", 610:"Axew", 611:"Fraxure", 612:"Haxorus", 613:"Cubchoo", 614:"Beartic", 615:"Cryogonal", 616:"Shelmet", 617:"Accelgor", 618:"Stunfisk", 619:"Mienfoo", 620:"Mienshao", 621:"Druddigon", 622:"Golett", 623:"Golurk", 624:"Pawniard", 625:"Bisharp", 626:"Bouffalant", 627:"Rufflet", 628:"Braviary", 629:"Vullaby", 630:"Mandibuzz", 631:"Heatmor", 632:"Durant", 633:"Deino", 634:"Zweilous", 635:"Hydreigon", 636:"Larvesta", 637:"Volcarona", 638:"Cobalion", 639:"Terrakion", 640:"Virizion", 641:"Tornadus", 642:"Thundurus", 643:"Reshiram", 644:"Zekrom", 645:"Landorus", 646:"Kyurem", 647:"Keldeo", 648:"Meloetta", 649:"Genesect", 650:"Chespin", 651:"Quilladin", 652:"Chesnaught", 653:"Fennekin", 654:"Braixen", 655:"Delphox", 656:"Froakie", 657:"Frogadier", 658:"Greninja", 659:"Bunnelby", 660:"Diggersby", 661:"Fletchling", 662:"Fletchinder", 663:"Talonflame", 664:"Scatterbug", 665:"Spewpa", 666:"Vivillon", 667:"Litleo", 668:"Pyroar", 669:"Flabébé", 670:"Floette", 671:"Florges", 672:"Skiddo", 673:"Gogoat", 674:"Pancham", 675:"Pangoro", 676:"Furfrou", 677:"Espurr", 678:"Meowstic", 679:"Honedge", 680:"Doublade", 681:"Aegislash", 682:"Spritzee", 683:"Aromatisse", 684:"Swirlix", 685:"Slurpuff", 686:"Inkay", 687:"Malamar", 688:"Binacle", 689:"Barbaracle", 690:"Skrelp", 691:"Dragalge", 692:"Clauncher", 693:"Clawitzer", 694:"Helioptile", 695:"Heliolisk", 696:"Tyrunt", 697:"Tyrantrum", 698:"Amaura", 699:"Aurorus", 700:"Sylveon", 701:"Hawlucha", 702:"Dedenne", 703:"Carbink", 704:"Goomy", 705:"Sliggoo", 706:"Goodra", 707:"Klefki", 708:"Phantump", 709:"Trevenant", 710:"Pumpkaboo", 711:"Gourgeist", 712:"Bergmite", 713:"Avalugg", 714:"Noibat", 715:"Noivern", 716:"Xerneas", 717:"Yveltal", 718:"Zygarde", 719:"Diancie", 720:"Hoopa", 721:"Volcanion" };
+
+function cryptArray(bytes, seed) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const n = bytes.length / 2;
+  let s = seed >>> 0;
+  for (let i = 0; i < n; i++) {
+    s = (Math.imul(0x41c64e6d, s) + 0x6073) >>> 0;
+    const xor = (s >>> 16) & 0xffff;
+    const word = view.getUint16(i * 2, true);
+    view.setUint16(i * 2, word ^ xor, true);
+  }
+  return bytes;
+}
+
+function shuffle67(blockData, sv) {
+  if (sv === 0) return blockData;
+  const blockSize = 56;
+  const blocks = [0, 1, 2, 3].map((i) =>
+    blockData.slice(i * blockSize, (i + 1) * blockSize)
+  );
+  const perm = [0, 1, 2, 3];
+  const slotOf = [0, 1, 2, 3];
+  const shuffle = BLOCK_POSITION.slice(sv * 4, sv * 4 + 4);
+  for (let i = 0; i < 3; i++) {
+    const desired = shuffle[i];
+    const j = slotOf[desired];
+    if (j === i) continue;
+    [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+    const blockAtI = perm[i];
+    perm[j] = blockAtI;
+    slotOf[blockAtI] = j;
+  }
+  const out = new Uint8Array(blockData.length);
+  blocks.forEach((b, i) => out.set(b, i * blockSize));
+  return out;
+}
+
+function decryptPk6(rawSlot) {
+  const data = new Uint8Array(rawSlot);
+  const view = new DataView(data.buffer);
+  const pv = view.getUint32(0, true); // Encryption Constant (EC), NO es el PID real
+  const sv = (pv >>> 13) & 31;
+
+  let shuffleRegion = data.slice(8, 8 + 224);
+  shuffleRegion = cryptArray(shuffleRegion, pv);
+  shuffleRegion = shuffle67(shuffleRegion, sv);
+  data.set(shuffleRegion, 8);
+
+  if (data.length > 232) {
+    let party = data.slice(232);
+    party = cryptArray(party, pv);
+    data.set(party, 232);
+  }
+  return data;
+}
+
+function readNickname(dec) {
+  // 24 bytes UTF-16LE a partir de offset 0x40 del bloque descifrado
+  const view = new DataView(dec.buffer);
+  let out = '';
+  for (let i = 0x40; i < 0x40 + 24; i += 2) {
+    const code = view.getUint16(i, true);
+    if (code === 0) break;
+    out += String.fromCharCode(code);
+  }
+  return out;
+}
+
+// FIX importante: la especie es la UNICA señal fiable de "vacio". Comprobar
+// solo el PID/EC (offset 0) es un error, porque un Pokemon real inyectado con
+// un editor puede tener EC=0 y seguir siendo perfectamente valido (confirmado
+// con checksum en saves reales). Tampoco vale mirar si el bloque entero es
+// cero: las cajas vacias de verdad SI tienen encryption constant en 0 y el
+// resto de bytes con contenido "plantilla" (no ceros), asi que hay que
+// descifrar siempre y decidir por la especie resultante.
+function readPokemon(rawSlot, hasBattleStats) {
+  const dec = decryptPk6(rawSlot);
+  const view = new DataView(dec.buffer);
+  const species = view.getUint16(8, true);
+  if (species < 1 || species > 721) return null; // vacio real o trash bytes
+  const level = hasBattleStats ? dec[0xec] : null;
+  const exp = view.getUint32(0x10, true);
+  const pid = view.getUint32(0x18, true);
+  const heldItem = view.getUint16(0x0a, true); // OJO: offset sin verificar del todo, ver aviso arriba
+  const abilityId = dec[0x14]; // CONFIRMADO por fuerza bruta contra save real (Julio 2026)
+  const natureId = dec[0x1c]; // CONFIRMADO por fuerza bruta contra save real (Julio 2026)
+  return {
+    speciesId: species,
+    speciesName: SPECIES_NAMES[species] || `#${species}`,
+    nickname: readNickname(dec),
+    level,
+    exp,
+    pid: '0x' + pid.toString(16),
+    heldItem, // no fiable todavia
+    abilityId,
+    natureId,
+  };
+}
+
+/**
+ * @param {ArrayBuffer} buffer - contenido del archivo "main"
+ */
+function parseXYSave(buffer) {
+  if (buffer.byteLength !== EXPECTED_SIZE) {
+    throw new Error(
+      `Tamano de archivo inesperado: ${buffer.byteLength} (se esperaban ${EXPECTED_SIZE} bytes). ` +
+      `Asegurate de subir el archivo "main" de Pokemon X sin modificar.`
+    );
+  }
+  const data = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+
+  // Nombre de entrenador (UTF-16LE terminado en 0x0000)
+  const nameBytes = data.slice(TRAINER_CARD_BASE + OT_NAME_OFFSET, TRAINER_CARD_BASE + OT_NAME_OFFSET + 24);
+  let name = '';
+  for (let i = 0; i < nameBytes.length; i += 2) {
+    const code = nameBytes[i] | (nameBytes[i + 1] << 8);
+    if (code === 0) break;
+    name += String.fromCharCode(code);
+  }
+
+  const money = view.getUint32(MONEY_OFFSET, true);
+
+  const party = [];
+  for (let slot = 0; slot < PARTY_SLOTS; slot++) {
+    const off = PARTY_BASE + slot * PARTY_SLOT_SIZE;
+    const raw = data.slice(off, off + PARTY_SLOT_SIZE);
+    const p = readPokemon(raw, true);
+    if (p) party.push({ slot, ...p });
+  }
+
+  const boxes = [];
+  for (let box = 0; box < BOXES; box++) {
+    const mons = [];
+    for (let slot = 0; slot < BOX_SLOTS; slot++) {
+      const off = BOX_BASE + box * BOX_STRIDE + slot * BOX_SLOT_SIZE;
+      const raw = data.slice(off, off + BOX_SLOT_SIZE);
+      const p = readPokemon(raw, false);
+      if (p) mons.push({ slot, ...p });
+    }
+    if (mons.length > 0) boxes.push({ box: box + 1, mons });
+  }
+
+  return { trainerName: name, money, party, boxes };
+}
+
+const NATURE_NAMES_ES = ['Fuerte','Huraña','Audaz','Firme','Pícara','Osada','Dócil','Plácida','Agitada','Floja','Miedosa','Activa','Seria','Alegre','Ingenua','Modesta','Afable','Mansa','Tímida','Alocada','Serena','Amable','Grosera','Cauta','Rara'];
+
+/* ================================================================
+   IMPORTAR DESDE SAVE — sube el archivo "main" (Pokémon X/Y en
+   Azahar/Citra) y rellena el equipo automáticamente con el parser
+   de arriba. Los offsets de habilidad y naturaleza están
+   confirmados por fuerza bruta contra saves reales; la Ball no se
+   usa todavía (PKHeX no persiste ese campo en pruebas hechas).
+   ================================================================ */
+function openImportSave(t){
+  openModal(`
+    <h3>📥 Importar desde save · ${NAMES[t]}</h3>
+    <p style="font-size:13px;color:var(--silver-dim);margin-bottom:14px;line-height:1.5;">
+      Sube el archivo <strong>main</strong> de tu partida de Pokémon X/Y (Azahar/Citra, 415.232 bytes)
+      y se leerá tu equipo actual automáticamente.
+    </p>
+    <input type="file" id="save-file-input" style="margin-bottom:14px;color:var(--silver-dim);">
+    <div class="err-msg" id="save-import-err"></div>
+    <div id="save-import-preview"></div>
+  `);
+  document.getElementById('save-file-input').addEventListener('change', (e)=> handleSaveFile(t, e.target.files[0]));
+}
+
+async function handleSaveFile(t, file){
+  const err = document.getElementById('save-import-err');
+  const preview = document.getElementById('save-import-preview');
+  if(!file) return;
+  err.textContent = '';
+  preview.innerHTML = '<p style="font-size:12px;color:var(--silver-dim);">Leyendo…</p>';
+  playSound('click');
+  try{
+    const buf = await file.arrayBuffer();
+    const result = parseXYSave(buf);
+    window.__lastSaveImport = { trainer: t, result };
+    const mismatch = result.trainerName && result.trainerName.toUpperCase() !== NAMES[t].toUpperCase();
+    preview.innerHTML = `
+      ${mismatch ? `<div class="err-msg" style="margin-bottom:10px;">⚠️ El save dice ser de "${result.trainerName}", pero estás importando para ${NAMES[t]}. Comprueba que sea el archivo correcto antes de continuar.</div>` : ''}
+      <div style="font-size:13px;margin-bottom:12px;color:var(--silver-dim);">💰 Dinero en el juego: <strong style="color:var(--silver-bright);">${result.money}</strong> · 📦 Cajas con Pokémon: <strong style="color:var(--silver-bright);">${result.boxes.reduce((n,b)=>n+b.mons.length,0)}</strong></div>
+      <div class="section-label" style="margin:0 0 8px;text-align:left;">Equipo detectado (${result.party.length})</div>
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;margin-bottom:16px;">
+        ${result.party.map(p=>`
+          <div style="background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:12px;text-align:left;">
+            <strong style="color:var(--silver-bright);">${p.nickname || p.speciesName}</strong> <span style="color:var(--silver-dim);">(${p.speciesName})</span> · Nv.${p.level ?? '?'}<br>
+            <span style="color:var(--silver-dim);">Naturaleza: ${NATURE_NAMES_ES[p.natureId] ?? p.natureId} · Habilidad #${p.abilityId}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="closeModal()">Cancelar</button>
+        <button class="primary" id="save-import-confirm" onclick="confirmImportTeam('${t}')">Sustituir equipo por este (${result.party.length})</button>
+      </div>
+    `;
+  }catch(e){
+    err.textContent = e.message || 'No se ha podido leer ese archivo. Asegúrate de subir el "main" sin modificar.';
+    preview.innerHTML = '';
+  }
+}
+
+async function confirmImportTeam(t){
+  const data = window.__lastSaveImport;
+  if(!data || data.trainer !== t) return;
+  const btn = document.getElementById('save-import-confirm');
+  if(btn){ btn.disabled = true; btn.textContent = 'Importando…'; }
+  const newTeam = [];
+  for(const p of data.result.party.slice(0,6)){
+    try{
+      const sp = await fetchPokemonSprite(p.speciesName);
+      newTeam.push({ id: crypto.randomUUID(), nickname: p.nickname || sp.name, species: sp.name, sprite: sp.sprite });
+    }catch(e){
+      // si falla la busqueda de sprite de uno en concreto, seguimos con el resto
+    }
+  }
+  teams[t] = newTeam;
+  pushHistory(`📥 ${NAMES[t]} importó su equipo desde el save (${newTeam.length} Pokémon)`);
+  closeModal();
+  render();
+  playSound('win');
+  fireConfetti({ count: 80 });
+  const ok = await saveProfile(t);
+  if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
 }
 
 /* ---------------- PokeAPI helpers ---------------- */
