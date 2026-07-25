@@ -273,6 +273,19 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .poke-remove:hover{ color: var(--danger); }
 
+.poke-level{
+  position:absolute; top:6px; left:8px;
+  font-family:'Rajdhani', sans-serif; font-weight:700; font-size:11px;
+  color: var(--silver-dim); letter-spacing:0.5px;
+}
+
+.poke-slot.fainted{ border-color: var(--danger); }
+.poke-slot.fainted img{ filter: grayscale(1) drop-shadow(0 2px 6px rgba(0,0,0,0.4)); opacity:0.55; }
+.poke-fainted-tag{
+  margin-top: 4px; font-size: 10px; font-weight:700; letter-spacing:0.5px;
+  color: var(--danger);
+}
+
 .poke-slot.empty{
   border-style: dashed; cursor:pointer; color: var(--silver-dim);
   font-family:'Rajdhani', sans-serif; font-size: 13px; letter-spacing:1px;
@@ -2183,11 +2196,13 @@ function renderProfile(app, t){
         const p = teams[t][i];
         if(p){
           return `
-          <div class="poke-slot">
+          <div class="poke-slot${p.fainted ? ' fainted' : ''}">
             <button class="poke-remove" onclick="removePoke('${t}','${p.id}')">✕</button>
+            ${p.level != null ? `<div class="poke-level">Nv.${p.level}</div>` : ''}
             <img src="${p.sprite}" alt="${p.species}">
             <div class="poke-nick">${p.nickname}</div>
             <div class="poke-species">${p.species.replace(/-/g,' ')}</div>
+            ${p.fainted ? `<div class="poke-fainted-tag">💀 Debilitado</div>` : ''}
           </div>`;
         }
         return `<div class="poke-slot empty" onclick="openAddPoke('${t}')">+ Añadir<br>Pokémon</div>`;
@@ -3906,6 +3921,11 @@ function readPokemon(rawSlot, hasBattleStats) {
   const heldItem = view.getUint16(0x0a, true); // OJO: offset sin verificar del todo, ver aviso arriba
   const abilityId = dec[0x14]; // CONFIRMADO por fuerza bruta contra save real (Julio 2026)
   const natureId = dec[0x1c]; // CONFIRMADO por fuerza bruta contra save real (Julio 2026)
+  // PS actual/max: solo existen en el bloque de combate que llevan los del
+  // equipo (hasBattleStats), las cajas no los tienen -> confirmado contra
+  // save real (offset 0xF0 = PS actual, 0xF2 = PS max).
+  const hpCurrent = hasBattleStats ? view.getUint16(0xf0, true) : null;
+  const hpMax = hasBattleStats ? view.getUint16(0xf2, true) : null;
   return {
     speciesId: species,
     speciesName: SPECIES_NAMES[species] || `#${species}`,
@@ -3916,6 +3936,8 @@ function readPokemon(rawSlot, hasBattleStats) {
     heldItem, // no fiable todavia
     abilityId,
     natureId,
+    hpCurrent,
+    hpMax,
   };
 }
 
@@ -4033,7 +4055,15 @@ async function confirmImportTeam(t){
   for(const p of data.result.party.slice(0,6)){
     try{
       const sp = await fetchPokemonSprite(p.speciesName);
-      newTeam.push({ id: crypto.randomUUID(), nickname: p.nickname || sp.name, species: sp.name, sprite: sp.sprite });
+      newTeam.push({
+        id: crypto.randomUUID(),
+        nickname: p.nickname || sp.name,
+        species: sp.name,
+        sprite: sp.sprite,
+        level: p.level ?? null,
+        pid: p.pid || null,
+        fainted: p.hpCurrent === 0,
+      });
     }catch(e){
       // si falla la busqueda de sprite de uno en concreto, seguimos con el resto
     }
