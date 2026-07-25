@@ -266,13 +266,6 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 .poke-slot img{ width:56px; height:56px; object-fit:contain; margin-bottom:6px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 .poke-nick{ font-family:'Rajdhani', sans-serif; font-weight:700; color: var(--silver-bright); font-size:15px; }
 .poke-species{ font-size: 11px; color: var(--silver-dim); text-transform: capitalize; margin-top:1px; }
-.poke-remove{
-  position:absolute; top:6px; right:8px;
-  background:none; border:none; color: var(--silver-dim);
-  cursor:pointer; font-size: 14px; line-height:1;
-}
-.poke-remove:hover{ color: var(--danger); }
-
 .poke-level{
   position:absolute; top:6px; left:8px;
   font-family:'Rajdhani', sans-serif; font-weight:700; font-size:11px;
@@ -287,10 +280,9 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 
 .poke-slot.empty{
-  border-style: dashed; cursor:pointer; color: var(--silver-dim);
+  border-style: dashed; color: var(--silver-dim);
   font-family:'Rajdhani', sans-serif; font-size: 13px; letter-spacing:1px;
 }
-.poke-slot.empty:hover{ border-color: var(--accent-dim); color: var(--silver-bright); }
 
 /* ---------- History ---------- */
 .history-list{ max-width: 640px; margin: 20px auto 0; display:flex; flex-direction:column; gap: 8px; }
@@ -2163,6 +2155,7 @@ function renderProfile(app, t){
       </div>
       <div class="action-row">
         <button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
+        <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
         <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
         <button class="ghost" onclick="openApplySancion()">⚖️ Aplicar sanción</button>
       </div>
@@ -2197,7 +2190,6 @@ function renderProfile(app, t){
         if(p){
           return `
           <div class="poke-slot${p.fainted ? ' fainted' : ''}">
-            <button class="poke-remove" onclick="removePoke('${t}','${p.id}')">✕</button>
             ${p.level != null ? `<div class="poke-level">Nv.${p.level}</div>` : ''}
             <img src="${p.sprite}" alt="${p.species}">
             <div class="poke-nick">${p.nickname}</div>
@@ -2205,7 +2197,7 @@ function renderProfile(app, t){
             ${p.fainted ? `<div class="poke-fainted-tag">💀 Debilitado</div>` : ''}
           </div>`;
         }
-        return `<div class="poke-slot empty" onclick="openAddPoke('${t}')">+ Añadir<br>Pokémon</div>`;
+        return `<div class="poke-slot empty">Vacío</div>`;
       }).join('')}
     </div>
   `;
@@ -3748,6 +3740,16 @@ async function loseLife(t){
     queueRetry('profile:'+t, ()=>saveProfile(t));
   }
 }
+async function addLife(t){
+  hearts[t] = Math.min(hearts[t]+1, 20);
+  pushHistory(`➕ ${NAMES[t]} sumó una vida manualmente (${hearts[t]}/20)`);
+  render();
+  const ok = await saveProfile(t);
+  if(!ok){
+    toast('No se ha sincronizado todavía, reintentando en segundo plano…');
+    queueRetry('profile:'+t, ()=>saveProfile(t));
+  }
+}
 async function resetLives(t){
   if(!confirm(`¿Seguro que quieres restablecer las 20 vidas de ${NAMES[t]}?`)) return;
   hearts[t] = 20;
@@ -3759,19 +3761,6 @@ async function resetLives(t){
     queueRetry('profile:'+t, ()=>saveProfile(t));
   }
 }
-async function removePoke(t, id){
-  const p = teams[t].find(x=>x.id===id);
-  teams[t] = teams[t].filter(x=>x.id!==id);
-  render();
-  const ok = await saveProfile(t);
-  if(!ok){
-    toast('No se ha sincronizado todavía, reintentando en segundo plano…');
-    queueRetry('profile:'+t, ()=>saveProfile(t));
-  }
-  if(p) pushHistory(`➖ ${NAMES[t]} quitó a ${p.nickname} (${p.species}) de su equipo`);
-  render();
-}
-
 /**
  * Parser de saves de Pokémon X/Y (archivo "main" de Azahar/Citra, 415232 bytes).
  *
@@ -4134,49 +4123,6 @@ function openModal(html, closable){
 function closeModal(){
   const o = document.getElementById('modal-overlay');
   if(o) o.remove();
-}
-
-function openAddPoke(t){
-  openModal(`
-    <h3>Añadir Pokémon · ${NAMES[t]}</h3>
-    <div class="field">
-      <label>Mote</label>
-      <input type="text" id="pk-nick" placeholder="ej: Croc">
-    </div>
-    <div class="field autocomplete-wrap">
-      <label>Pokémon</label>
-      <input type="text" id="pk-species" placeholder="ej: totodile" autocomplete="off">
-      <div class="autocomplete-list" id="pk-species-list"></div>
-    </div>
-    <div class="err-msg" id="pk-err"></div>
-    <div class="modal-actions">
-      <button class="ghost" onclick="closeModal()">Cancelar</button>
-      <button class="primary" id="pk-submit" onclick="submitAddPoke('${t}')">Añadir</button>
-    </div>
-  `);
-  attachAutocomplete(document.getElementById('pk-species'), document.getElementById('pk-species-list'), ()=>POKEMON_NAMES);
-}
-async function submitAddPoke(t){
-  const nick = document.getElementById('pk-nick').value.trim();
-  const species = document.getElementById('pk-species').value.trim();
-  const err = document.getElementById('pk-err');
-  const btn = document.getElementById('pk-submit');
-  err.textContent = '';
-  if(!nick || !species){ err.textContent = 'Rellena el mote y el Pokémon.'; return; }
-  if(teams[t].length >= 6){ err.textContent = 'El equipo ya tiene 6 Pokémon.'; return; }
-  btn.textContent = 'Buscando…'; btn.disabled = true;
-  try{
-    const p = await fetchPokemonSprite(species);
-    teams[t].push({ id: crypto.randomUUID(), nickname: nick, species: p.name, sprite: p.sprite });
-    pushHistory(`➕ ${NAMES[t]} añadió a ${nick} (${p.name}) a su equipo`);
-    closeModal();
-    render();
-    const ok = await saveProfile(t);
-    if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
-  }catch(e){
-    err.textContent = 'No se encontró ese Pokémon. Prueba con el nombre en inglés (ej: "totodile").';
-    btn.textContent = 'Añadir'; btn.disabled = false;
-  }
 }
 
 function openAddNorma(){
