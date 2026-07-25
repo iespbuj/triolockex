@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Triolocke · SoulSilver</title>
+<title>Triolocke · X</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -1197,7 +1197,7 @@ footer{
 
 <header>
   <h1 class="logo" onclick="go('home')">TRIOLOCKE</h1>
-  <div class="subtitle">Pokémon SoulSilver · Iker · Joel · Alex</div>
+  <div class="subtitle">Pokémon X · Iker · Joel · Alex</div>
   <nav>
     <button class="nav-btn" data-nav="home" onclick="go('home')">Inicio</button>
     <button class="nav-btn" data-nav="history" onclick="go('history')">Historial</button>
@@ -1608,9 +1608,9 @@ let sancionWheelRotation = 0;
 
 /* ---------------- CASINO ---------------- */
 const SLOT_MACHINES = [
-  { id:'beasts',    name:'Bestias Legendarias',  emoji:'🐆', legendaries:['Raikou','Entei','Suicune'], img:'slotBeasts',    line:'Tira de la palanca cuando quieras.' },
-  { id:'guardians', name:'Guardianes de Johto',  emoji:'🕊️', legendaries:['Ho-Oh','Lugia'], img:'slotGuardians', line:'Los guardianes no esperan a nadie... tira ya.' },
-  { id:'time',      name:'Guardián del Tiempo',  emoji:'🌿', legendaries:['Celebi'], img:'slotTime',      line:'El tiempo vuela. Celebi no. Dale a la palanca.' },
+  { id:'vida',      name:'Guardián de la Vida',  emoji:'🦌', legendaries:['Xerneas'], img:'slotBeasts',    line:'La eternidad no espera. Tira ya.' },
+  { id:'equilibrio',name:'Guardián del Equilibrio', emoji:'🐍', legendaries:['Zygarde'], img:'slotGuardians', line:'El orden de Kalos, en tus manos.' },
+  { id:'mitos',     name:'Mitos de Kalos',       emoji:'💎', legendaries:['Diancie','Hoopa','Volcanion'], img:'slotTime',      line:'Rarezas de cine. Solo para los más suertudos.' },
   { id:'kanto',     name:'Aves de Kanto',        emoji:'🦅', legendaries:['Articuno','Zapdos','Moltres'], img:'slotKanto',     line:'Vieja escuela, viejas máquinas. Mucha suerte.' }
 ];
 const SLOT_SPIN_COST = 1;
@@ -1805,14 +1805,14 @@ async function storeSet(key, val){
 
 async function loadAll(){
   const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult] = await Promise.all([
-    Promise.all(TRAINERS.map(t => storeGet('profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null}))),
-    storeGet('history', []),
-    storeGet('trades', {active:[], history:[]}),
-    storeGet('duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
-    storeGet('duelHistory', []),
-    storeGet('normas', []),
-    storeGet('sancion', { offender: null, prize: null }),
-    storeGet('loteria', { pot: 0, entries: [], history: [] })
+    Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null}))),
+    storeGet('x:history', []),
+    storeGet('x:trades', {active:[], history:[]}),
+    storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
+    storeGet('x:duelHistory', []),
+    storeGet('x:normas', []),
+    storeGet('x:sancion', { offender: null, prize: null }),
+    storeGet('x:loteria', { pot: 0, entries: [], history: [] })
   ]);
   TRAINERS.forEach((t, i) => {
     hearts[t] = profileResults[i].hearts;
@@ -1832,7 +1832,7 @@ async function loadAll(){
   loaded = true;
 }
 async function saveProfile(t){
-  return await storeSet('profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null });
+  return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null });
 }
 
 const ROULETTE_LIFE_RISK = 0.05; // 5% de posibilidades de perder 1 vida automáticamente al girar una ruleta del casino
@@ -1862,22 +1862,22 @@ async function checkDailyBonus(t){
   if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
 }
 async function saveTrades(){
-  return await storeSet('trades', { active: tradesActive, history: tradesHistory });
+  return await storeSet('x:trades', { active: tradesActive, history: tradesHistory });
 }
 async function saveDuelState(){
-  return await storeSet('duel', duelState);
+  return await storeSet('x:duel', duelState);
 }
 async function saveDuelHistory(){
-  return await storeSet('duelHistory', duelHistory);
+  return await storeSet('x:duelHistory', duelHistory);
 }
 async function saveNormas(){
-  return await storeSet('normas', normas);
+  return await storeSet('x:normas', normas);
 }
 async function saveSancion(){
-  return await storeSet('sancion', sancionState);
+  return await storeSet('x:sancion', sancionState);
 }
 async function saveLoteria(){
-  return await storeSet('loteria', loteria);
+  return await storeSet('x:loteria', loteria);
 }
 
 function fmtTime(ts){
@@ -1937,7 +1937,7 @@ window.addEventListener('beforeunload', (e)=>{
 function pushHistory(text){
   history.unshift({id: crypto.randomUUID(), text, ts: Date.now()});
   history = history.slice(0, 300);
-  storeSet('history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>storeSet('history', history)); });
+  storeSet('x:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>storeSet('x:history', history)); });
 }
 
 async function addTickets(t, amount, reason){
