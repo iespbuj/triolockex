@@ -1758,6 +1758,8 @@ let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador rec
 let money = {}, badgesRaw = {}; // sincronizados automáticamente por vidas_watcher.py desde el save
 let locationName = {}; // idem: ubicacion actual en el juego (zona/mapa)
 let collections = {}; // idem: coleccion completa (equipo+cajas) por entrenador, para poder ver/ofertar cualquier Pokémon
+let boxesOpenFor = null; // que perfil tiene la seccion de cajas desplegada ahora mismo
+function toggleBoxesFor(t){ boxesOpenFor = (boxesOpenFor===t) ? null : t; render(); }
 const DAILY_BONUS_AMOUNT = 10;
 let normas = [];
 
@@ -2470,6 +2472,28 @@ function renderProfile(app, t){
         return `<div class="poke-slot empty">Vacío</div>`;
       }).join('')}
     </div>
+
+    ${(()=>{
+      const boxMons = allMonsOf(t).filter(m=>!m.inTeam);
+      const open = boxesOpenFor === t;
+      return `
+      <div class="team-section-header" style="margin-top:20px;">
+        <div class="section-label">📦 Cajas (${boxMons.length})</div>
+        <button class="ghost" onclick="toggleBoxesFor('${t}')">${open ? 'Ocultar' : 'Ver cajas'}</button>
+      </div>
+      ${open ? (boxMons.length===0 ? '<div class="empty-state">No hay ningún Pokémon en cajas.</div>' : `
+        <div class="team-grid" style="grid-template-columns:repeat(auto-fill, minmax(84px, 1fr));">
+          ${boxMons.map(m=>`
+            <div class="poke-slot" onclick="openPokemonDetail('${t}','${m.pid}')" style="cursor:pointer;padding:8px 4px;">
+              <img src="${m.sprite}" alt="${m.speciesName}" style="width:56px;height:56px;">
+              <div class="poke-nick" style="font-size:11px;">${m.nickname}</div>
+              <div class="poke-species" style="font-size:9px;">${m.speciesName.replace(/-/g,' ')}</div>
+            </div>
+          `).join('')}
+        </div>
+      `) : ''}
+      `;
+    })()}
   `;
 }
 
