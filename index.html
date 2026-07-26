@@ -1335,6 +1335,15 @@ footer{
 .combat-count{
   font-size: 10px; letter-spacing: .5px; color: var(--silver-dim); margin-top: 2px;
 }
+.location-pill{
+  display:inline-block; margin: 4px auto 6px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; letter-spacing: .3px;
+  color: #a9c3ff;
+  background: rgba(79,127,255,0.14);
+  border: 1px solid rgba(79,127,255,0.4);
+  border-radius: 999px;
+  white-space: nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 100%;
+}
 
 </style>
 </head>
@@ -1747,6 +1756,7 @@ let hearts = {}, teams = {}, history = [], tradesActive = [], tradesHistory = []
 let tickets = {}, pendingPrizes = {};
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let money = {}, badgesRaw = {}; // sincronizados automáticamente por vidas_watcher.py desde el save
+let locationName = {}; // idem: ubicacion actual en el juego (zona/mapa)
 const DAILY_BONUS_AMOUNT = 10;
 let normas = [];
 
@@ -1977,7 +1987,7 @@ async function storeSet(key, val){
 
 async function loadAll(){
   const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult] = await Promise.all([
-    Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0}))),
+    Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
     storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
@@ -1994,6 +2004,7 @@ async function loadAll(){
     dailyBonusDate[t] = profileResults[i].dailyBonusDate || null;
     money[t] = profileResults[i].money || 0;
     badgesRaw[t] = profileResults[i].badges || 0;
+    locationName[t] = profileResults[i].locationName || null;
   });
   history = historyResult;
   tradesActive = tradesResult.active;
@@ -2006,7 +2017,7 @@ async function loadAll(){
   loaded = true;
 }
 async function saveProfile(t){
-  return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, money: money[t]||0, badges: badgesRaw[t]||0 });
+  return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, money: money[t]||0, badges: badgesRaw[t]||0, locationName: locationName[t]||null });
 }
 
 const ROULETTE_LIFE_RISK = 0.05; // 5% de posibilidades de perder 1 vida automáticamente al girar una ruleta del casino
@@ -2219,6 +2230,13 @@ function gymBadgesOf(t){
 function gymBadgeCountOf(t){
   return gymBadgesOf(t).filter(Boolean).length;
 }
+// Level cap vigente segun las medallas ya conseguidas. Devuelve null si ya
+// se han conseguido las 8 (no hay cap, se acabaron las normas de nivel).
+function currentLevelCap(t){
+  const badges = gymBadgeCountOf(t);
+  if (badges >= LEVEL_CAP_TABLE.length) return null;
+  return LEVEL_CAP_TABLE[badges];
+}
 // Ranking por medallas: primero combates ganados, y si hay empate, se desempata por vidas.
 function getMedalRanking(){
   const ranked = [...TRAINERS].sort((a,b)=>{
@@ -2321,10 +2339,14 @@ function renderHome(app){
         return `
         <div class="profile-card rank-${r}" onclick="go('profile','${t}')">
           <div class="medal-badge ${rankOf[t].medal}">${rankOf[t].icon}</div>
+          ${locationName[t] ? `<div class="location-pill">📍 ${locationName[t]}</div>` : ''}
           <div class="trainer-name">${NAMES[t]}</div>
           <div class="hearts-count ${h<0?'danger':''}">${h}<small>/20</small></div>
           <div class="combat-count">🏆 ${wins} combate${wins===1?'':'s'} ganado${wins===1?'':'s'}</div>
           <div class="combat-count" style="margin-top:2px;">🏅 ${gymBadgeCountOf(t)}/8 · 💰 ${(money[t]||0).toLocaleString('es-ES')}</div>
+          ${(()=>{ const cap = currentLevelCap(t); return cap
+            ? `<div class="combat-count" style="margin-top:2px;">🎯 Cap: Nv. ${cap.cap} (${cap.leader})</div>`
+            : `<div class="combat-count" style="margin-top:2px;">🎯 Sin cap (8/8 medallas)</div>`; })()}
           <div class="mini-team">
             ${Array.from({length:6}).map((_,i)=>{
               const p = teams[t][i];
@@ -2350,6 +2372,7 @@ function renderProfile(app, t){
 
     <div class="profile-hero">
       <div class="profile-hero-medal">${rankOf[t].icon}</div>
+      ${locationName[t] ? `<div class="location-pill" style="font-size:12px;padding:4px 14px;margin-bottom:6px;">📍 ${locationName[t]}</div>` : ''}
       <div class="profile-hero-name">${NAMES[t]}</div>
       <div class="profile-hero-sub">🏆 ${wins} combate${wins===1?'':'s'} ganado${wins===1?'':'s'}</div>
       <div class="profile-hero-hearts">
@@ -2377,6 +2400,10 @@ function renderProfile(app, t){
         <div class="badge-row">
           ${gymBadgesOf(t).map((got,i)=>`<div class="badge-pip ${got?'got':'not'}" title="Medalla ${i+1}">${i+1}</div>`).join('')}
         </div>
+        ${(()=>{ const cap = currentLevelCap(t); return `
+        <div style="font-size:11px;color:var(--silver-dim);margin-top:10px;letter-spacing:.5px;">
+          🎯 LEVEL CAP: ${cap ? `Nv. ${cap.cap} <span style="opacity:.7;">(hasta vencer a ${cap.leader})</span>` : 'sin cap (8/8 medallas)'}
+        </div>`; })()}
       </div>
       <div class="stat-card ticket-card">
         <div class="stat-card-label">Saldo del casino</div>
