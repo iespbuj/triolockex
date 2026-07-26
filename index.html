@@ -1757,6 +1757,7 @@ let tickets = {}, pendingPrizes = {};
 let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador reclamó su bonus diario
 let money = {}, badgesRaw = {}; // sincronizados automáticamente por vidas_watcher.py desde el save
 let locationName = {}; // idem: ubicacion actual en el juego (zona/mapa)
+let collections = {}; // idem: coleccion completa (equipo+cajas) por entrenador, para poder ver/ofertar cualquier Pokémon
 const DAILY_BONUS_AMOUNT = 10;
 let normas = [];
 
@@ -1986,7 +1987,7 @@ async function storeSet(key, val){
 }
 
 async function loadAll(){
-  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult] = await Promise.all([
+  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult, collectionResults] = await Promise.all([
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
@@ -1994,7 +1995,8 @@ async function loadAll(){
     storeGet('x:duelHistory', []),
     storeGet('x:normas', []),
     storeGet('x:sancion', { offender: null, prize: null }),
-    storeGet('x:loteria', { pot: 0, entries: [], history: [] })
+    storeGet('x:loteria', { pot: 0, entries: [], history: [] }),
+    Promise.all(TRAINERS.map(t => storeGet('x:collection:'+t, {pids:{}})))
   ]);
   TRAINERS.forEach((t, i) => {
     hearts[t] = profileResults[i].hearts;
@@ -2014,6 +2016,7 @@ async function loadAll(){
   normas = normasResult;
   sancionState = sancionResult;
   loteria = loteriaResult;
+  TRAINERS.forEach((t, i) => { collections[t] = collectionResults[i].pids || {}; });
   loaded = true;
 }
 async function saveProfile(t){
@@ -2237,6 +2240,28 @@ function currentLevelCap(t){
   if (badges >= LEVEL_CAP_TABLE.length) return null;
   return LEVEL_CAP_TABLE[badges];
 }
+// Todos los Pokémon de un entrenador: equipo (con su flag de debilitado real)
+// + los que estén en cajas (nunca debilitados, eso solo existe en equipo).
+// Sirve tanto para "ver un Pokémon en detalle" como para "elegir con cuál ofertar".
+function allMonsOf(t){
+  const team = (teams[t]||[]).map(p => ({
+    pid: p.pid, nickname: p.nickname, speciesName: p.species, sprite: p.sprite,
+    level: p.level, metLocationName: p.metLocationName || null, metLevel: p.metLevel,
+    fainted: !!p.fainted, inTeam: true,
+  }));
+  const teamPids = new Set(team.map(m=>m.pid));
+  const boxMons = Object.entries(collections[t]||{})
+    .filter(([pid, m]) => !teamPids.has(pid) && m && m.inTeam === false)
+    .map(([pid, m]) => ({
+      pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
+      level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
+      fainted: false, inTeam: false,
+    }));
+  return [...team, ...boxMons];
+}
+function availableMonsOf(t){
+  return allMonsOf(t).filter(m => !m.fainted);
+}
 // Ranking por medallas: primero combates ganados, y si hay empate, se desempata por vidas.
 function getMedalRanking(){
   const ranked = [...TRAINERS].sort((a,b)=>{
@@ -2434,7 +2459,7 @@ function renderProfile(app, t){
         const p = teams[t][i];
         if(p){
           return `
-          <div class="poke-slot${p.fainted ? ' fainted' : ''}">
+          <div class="poke-slot${p.fainted ? ' fainted' : ''}" onclick="openPokemonDetail('${t}','${p.pid}')" style="cursor:pointer;">
             ${p.level != null ? `<div class="poke-level">Nv.${p.level}</div>` : ''}
             <img src="${p.sprite}" alt="${p.species}">
             <div class="poke-nick">${p.nickname}</div>
@@ -3462,6 +3487,12 @@ function renderTrade(app){
           </div>
           ${tradeLinkIcon()}
           <div class="trade-side empty-side">
+            ${o.wantedPokemon ? `
+              <span class="trade-side-label">Pide a cambio (de ${NAMES[o.wantedPokemon.trainer]})</span>
+              <div class="chip-row">
+                <div class="chip"><img src="${o.wantedPokemon.sprite}"><span>${o.wantedPokemon.nickname}</span></div>
+              </div>
+            ` : ''}
             <span class="empty-txt">${o.counters.length===0 ? 'Sin contraofertas todavía' : `${o.counters.length} contraoferta${o.counters.length===1?'':'s'} · mira abajo`}</span>
             <button class="ghost" style="font-size:11px;padding:5px 12px;" onclick="openCounterOffer('${o.id}')">+ Ofrecer a cambio</button>
           </div>
@@ -4498,6 +4529,97 @@ function openCounterOffer(offerId){
   openNewGenericOffer('counter', offerId);
 }
 
+/* ---- Ver un Pokémon concreto (equipo o caja) y ofertar por él ---- */
+function openPokemonDetail(ownerTrainer, pid){
+  const mon = allMonsOf(ownerTrainer).find(m=>m.pid===pid);
+  if(!mon) return;
+  openModal(`
+    <h3>${mon.nickname}</h3>
+    <div style="text-align:center;margin-bottom:12px;">
+      <img src="${mon.sprite}" alt="${mon.speciesName}" style="width:96px;height:96px;">
+      <div style="font-size:13px;color:var(--silver-dim);">${mon.speciesName.replace(/-/g,' ')}</div>
+    </div>
+    <div style="font-size:12px;color:var(--silver-dim);line-height:1.8;">
+      <div>Entrenador: <strong style="color:var(--silver-bright);">${NAMES[ownerTrainer]}</strong></div>
+      ${mon.level!=null ? `<div>Nivel actual: <strong style="color:var(--silver-bright);">${mon.level}</strong></div>` : ''}
+      ${mon.metLevel!=null ? `<div>Capturado a nivel: <strong style="color:var(--silver-bright);">${mon.metLevel}</strong></div>` : ''}
+      <div>Capturado en: <strong style="color:var(--silver-bright);">${mon.metLocationName || 'Desconocido'}</strong></div>
+      ${mon.fainted ? `<div style="color:#e05c5c;">💀 Debilitado</div>` : ''}
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Cerrar</button>
+      <button class="primary" onclick="openOfferForPokemon('${ownerTrainer}','${pid}')">🔁 Ofertar por este Pokémon</button>
+    </div>
+  `);
+}
+
+let wantedPokemonTarget = null; // {trainer, pid, nickname, speciesName, sprite} -- lo que se pide a cambio
+let offerSelectedPids = new Set(); // pids elegidos de la lista de "con qué ofertas"
+
+function openOfferForPokemon(ownerTrainer, pid){
+  const mon = allMonsOf(ownerTrainer).find(m=>m.pid===pid);
+  if(!mon) return;
+  wantedPokemonTarget = { trainer: ownerTrainer, pid, nickname: mon.nickname, speciesName: mon.speciesName, sprite: mon.sprite, metLocationName: mon.metLocationName };
+  offerSelectedPids = new Set();
+  const otherTrainers = TRAINERS.filter(t=>t!==ownerTrainer);
+  openModal(`
+    <h3>Ofertar por ${mon.nickname}</h3>
+    <div class="field">
+      <label>¿Quién hace la oferta?</label>
+      <select id="offerer-select" onchange="renderOffererPokemonList()">
+        ${otherTrainers.map(t=>`<option value="${t}">${NAMES[t]}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label>¿Con qué Pokémon suyo/s? (puede elegir varios)</label>
+      <div id="offerer-pokemon-list" class="normas-list" style="max-height:260px;overflow-y:auto;"></div>
+    </div>
+    <div class="err-msg" id="poke-offer-err"></div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Cancelar</button>
+      <button class="primary" onclick="submitPokemonOffer()">Publicar oferta</button>
+    </div>
+  `);
+  renderOffererPokemonList();
+}
+function renderOffererPokemonList(){
+  const t = document.getElementById('offerer-select').value;
+  offerSelectedPids = new Set();
+  const list = availableMonsOf(t);
+  const el = document.getElementById('offerer-pokemon-list');
+  if(list.length === 0){ el.innerHTML = '<div class="empty-state">No tiene ningún Pokémon disponible.</div>'; return; }
+  el.innerHTML = list.map(m=>`
+    <label class="norma-item" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+      <input type="checkbox" value="${m.pid}" onchange="toggleOfferSelected('${m.pid}', this.checked)">
+      <img src="${m.sprite}" style="width:36px;height:36px;">
+      <div>
+        <div class="n-text">${m.nickname}${m.level!=null ? ` · Nv.${m.level}` : ''}</div>
+        <div class="n-meta mono">${m.speciesName.replace(/-/g,' ')}${m.inTeam ? ' · equipo' : ' · caja'}</div>
+      </div>
+    </label>
+  `).join('');
+}
+function toggleOfferSelected(pid, checked){
+  if(checked) offerSelectedPids.add(pid); else offerSelectedPids.delete(pid);
+}
+async function submitPokemonOffer(){
+  const trainer = document.getElementById('offerer-select').value;
+  const err = document.getElementById('poke-offer-err');
+  if(offerSelectedPids.size === 0){ err.textContent = 'Elige al menos un Pokémon con el que ofertar.'; return; }
+  const items = availableMonsOf(trainer)
+    .filter(m=>offerSelectedPids.has(m.pid))
+    .map(m=>({ type:'pokemon', name: m.speciesName, sprite: m.sprite, pid: m.pid, nickname: m.nickname }));
+  tradesActive.unshift({
+    id: crypto.randomUUID(), trainer, items, ts: Date.now(), counters: [],
+    wantedPokemon: wantedPokemonTarget,
+  });
+  pushHistory(`🔁 ${NAMES[trainer]} ofertó por ${wantedPokemonTarget.nickname} de ${NAMES[wantedPokemonTarget.trainer]}`);
+  closeModal();
+  render();
+  const ok = await saveTrades();
+  if(!ok) queueRetry('trades', saveTrades);
+}
+
 let pendingItems = [];
 function openNewGenericOffer(mode, offerId){
   pendingItems = [];
@@ -4632,7 +4754,7 @@ async function deleteTradeRecord(id){
     if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing) return; // don't refresh mid-edit or mid-spin
     await loadAll();
     render();
-  }, 20000);
+  }, 4000);
 })();
 </script>
 </body>
