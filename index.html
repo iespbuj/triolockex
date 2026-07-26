@@ -2242,6 +2242,14 @@ function currentLevelCap(t){
   if (badges >= LEVEL_CAP_TABLE.length) return null;
   return LEVEL_CAP_TABLE[badges];
 }
+// Pokémon del equipo (no cajas, solo cuentan los que se usan en combate) que
+// se pasan del level cap actual. Vacío si no hay cap (8/8 medallas) o si
+// nadie se ha pasado.
+function overCapMonsOf(t){
+  const cap = currentLevelCap(t);
+  if (!cap) return [];
+  return (teams[t]||[]).filter(p => !p.fainted && p.level != null && p.level > cap.cap);
+}
 // Todos los Pokémon de un entrenador: equipo (con su flag de debilitado real)
 // + los que estén en cajas (nunca debilitados, eso solo existe en equipo).
 // Sirve tanto para "ver un Pokémon en detalle" como para "elegir con cuál ofertar".
@@ -2374,6 +2382,8 @@ function renderHome(app){
           ${(()=>{ const cap = currentLevelCap(t); return cap
             ? `<div class="combat-count" style="margin-top:2px;">🎯 Cap: Nv. ${cap.cap} (${cap.leader})</div>`
             : `<div class="combat-count" style="margin-top:2px;">🎯 Sin cap (8/8 medallas)</div>`; })()}
+          ${(()=>{ const over = overCapMonsOf(t); return over.length===0 ? '' :
+            `<div class="location-pill" style="background:rgba(255,176,32,0.14);border-color:rgba(255,176,32,0.4);color:#ffb020;margin-top:4px;">⚠️ ${over.length} sobrepasado${over.length===1?'':'s'}</div>`; })()}
           <div class="mini-team">
             ${Array.from({length:6}).map((_,i)=>{
               const p = teams[t][i];
@@ -2430,6 +2440,10 @@ function renderProfile(app, t){
         ${(()=>{ const cap = currentLevelCap(t); return `
         <div style="font-size:11px;color:var(--silver-dim);margin-top:10px;letter-spacing:.5px;">
           🎯 LEVEL CAP: ${cap ? `Nv. ${cap.cap} <span style="opacity:.7;">(hasta vencer a ${cap.leader})</span>` : 'sin cap (8/8 medallas)'}
+        </div>`; })()}
+        ${(()=>{ const over = overCapMonsOf(t); if(over.length===0) return ''; return `
+        <div style="font-size:12px;color:#ffb020;background:rgba(255,176,32,0.12);border:1px solid rgba(255,176,32,0.4);border-radius:8px;padding:8px 10px;margin-top:10px;">
+          ⚠️ ${over.length} Pokémon por encima del level cap: ${over.map(p=>`${p.nickname} (Nv.${p.level})`).join(', ')}
         </div>`; })()}
       </div>
       <div class="stat-card ticket-card">
