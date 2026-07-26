@@ -1749,6 +1749,31 @@ let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador rec
 let money = {}, badgesRaw = {}; // sincronizados automáticamente por vidas_watcher.py desde el save
 const DAILY_BONUS_AMOUNT = 10;
 let normas = [];
+
+// Normas fijas del Triolocke. Se siembran solas la primera vez (si todavia
+// no estan en la lista) para no tener que anadirlas a mano una por una.
+const LEVEL_CAP_TABLE = [
+  { gym: 1, leader: 'Viola',   cap: 12 },
+  { gym: 2, leader: 'Grant',   cap: 25 },
+  { gym: 3, leader: 'Korrina', cap: 32 },
+  { gym: 4, leader: 'Ramos',   cap: 34 },
+  { gym: 5, leader: 'Clemont', cap: 37 },
+  { gym: 6, leader: 'Valerie', cap: 42 },
+  { gym: 7, leader: 'Olympia', cap: 48 },
+  { gym: 8, leader: 'Wulfric', cap: 59 },
+];
+const DEFAULT_NORMAS = [
+  'Cualquier Pokémon debilitado debe ser liberado.',
+  'Solo se podrá capturar el primer Pokémon salvaje de cada ruta o zona.',
+  'Todos los Pokémon deben tener un mote.',
+  'Cláusula Shiny: si el entrenador se topa con un Pokémon Shiny, independientemente de si este es el primer encuentro de su zona o no, podrá capturarlo. Los Nuzlocke premian que suceda un evento con tan bajas posibilidades.',
+  'No se pueden perder vidas hasta que se intente capturar en la primera ruta del juego.',
+  'Siempre se tendrá que abrir el juego desde jugar_pokemon.bat.',
+  'Los combates entre entrenadores se harán cada 2 gimnasios.',
+  'Se tendrá que respetar el level cap.',
+  'Solo se pueden usar las curas que se encuentran en el suelo. Está prohibido comprar pociones.',
+  'Cada vez que se muera uno o más Pokémon se tendrá que guardar la partida.',
+];
 let sancionState = { offender: null, prize: null };
 let sancionWheelSpinning = false;
 let sancionWheelRotation = 0;
@@ -2021,6 +2046,33 @@ async function saveDuelHistory(){
 }
 async function saveNormas(){
   return await storeSet('x:normas', normas);
+}
+async function seedDefaultNormasIfMissing(){
+  const defaultTextsSet = new Set(DEFAULT_NORMAS);
+  const existingTexts = new Set(normas.map(n => n.text));
+  const toAdd = DEFAULT_NORMAS.filter(t => !existingTexts.has(t));
+  let changed = false;
+
+  // Si alguna de las normas por defecto ya se guardo antes con un entrenador
+  // puesto (versiones previas de esta funcion), se lo quitamos.
+  normas.forEach(n => {
+    if(defaultTextsSet.has(n.text) && n.trainer !== null){
+      n.trainer = null;
+      changed = true;
+    }
+  });
+
+  if(toAdd.length > 0){
+    const now = Date.now();
+    toAdd.forEach((text, i) => {
+      normas.push({ id: crypto.randomUUID(), trainer: null, text, ts: now - (toAdd.length - i) });
+    });
+    changed = true;
+  }
+
+  if(!changed) return;
+  const ok = await saveNormas();
+  if(!ok) queueRetry('normas', saveNormas);
 }
 async function saveSancion(){
   return await storeSet('x:sancion', sancionState);
@@ -2386,6 +2438,37 @@ function renderHistory(app){
   `;
 }
 
+function renderNormaText(text){
+  if(!text.toLowerCase().includes('level cap')) return text;
+  const parts = text.split(/(level cap)/i);
+  return parts.map(p => p.toLowerCase()==='level cap'
+    ? `<span class="level-cap-toggle" style="text-decoration:underline dotted;cursor:pointer;color:var(--accent);" onclick="toggleLevelCapTable(event)">${p}</span>`
+    : p
+  ).join('') + `
+    <div class="level-cap-table" style="display:none;margin-top:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:var(--panel-2);">
+          <th style="padding:6px 10px;text-align:left;color:var(--silver-dim);">Gimnasio</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--silver-dim);">Líder</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--silver-dim);">Level cap</th>
+        </tr></thead>
+        <tbody>
+          ${LEVEL_CAP_TABLE.map(r=>`
+            <tr style="border-top:1px solid var(--border);">
+              <td style="padding:6px 10px;">${r.gym}</td>
+              <td style="padding:6px 10px;">${r.leader}</td>
+              <td style="padding:6px 10px;color:var(--silver-bright);">${r.cap}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+function toggleLevelCapTable(ev){
+  const table = ev.currentTarget.parentElement.querySelector('.level-cap-table');
+  if(table) table.style.display = table.style.display==='none' ? 'block' : 'none';
+}
+
 function renderNormas(app){
   app.innerHTML = `
     <div class="trade-header">
@@ -2396,8 +2479,8 @@ function renderNormas(app){
     <div class="normas-list">
       ${normas.map(n=>`
         <div class="norma-item">
-          <div class="n-text">${n.text}</div>
-          <div class="n-meta mono">${NAMES[n.trainer]} · ${fmtTime(n.ts)}</div>
+          <div class="n-text">${renderNormaText(n.text)}</div>
+          <div class="n-meta mono">${n.trainer ? NAMES[n.trainer]+' · ' : ''}${fmtTime(n.ts)}</div>
         </div>
       `).join('')}
     </div>`}
@@ -4516,6 +4599,7 @@ async function deleteTradeRecord(id){
   if(muteBtn) muteBtn.textContent = soundMuted ? '🔇' : '🔊';
   loadNameLists();
   await loadAll();
+  await seedDefaultNormasIfMissing();
   render();
   setInterval(async ()=>{
     if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing) return; // don't refresh mid-edit or mid-spin
