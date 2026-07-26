@@ -1798,14 +1798,14 @@ const SLOT_MACHINES = [
 const SLOT_SPIN_COST = 1;
 const SLOT_FILLER_SYMBOLS = ['🍒','🔔','🍋','⭐'];
 // Tabla de probabilidades de la tragaperras (deben sumar 1.0)
-// Punto intermedio entre la tabla original y la subida anterior: 7% legendario, 60% nada.
+// Bajada pedida por el grupo: jackpot casi imposible, resto de premios mas duros.
 const SLOT_OUTCOMES = [
-  { type:'jackpot', symbol:'👑', chance:0.07, label:'¡JACKPOT! Legendario' },
-  { type:'capture', symbol:'🎁', chance:0.10, label:'1 captura extra' },
-  { type:'egg',     symbol:'🥚', chance:0.10, label:'Huevo random' },
-  { type:'revive',  symbol:'❤️‍🩹', chance:0.08, label:'Revivir un Pokémon muerto a elegir' },
+  { type:'jackpot', symbol:'👑', chance:0.02, label:'¡JACKPOT! Legendario' },
+  { type:'capture', symbol:'🎁', chance:0.06, label:'1 captura extra' },
+  { type:'egg',     symbol:'🥚', chance:0.06, label:'Huevo random' },
+  { type:'revive',  symbol:'❤️‍🩹', chance:0.05, label:'Revivir un Pokémon muerto a elegir' },
   { type:'curse',   symbol:'💀', chance:0.05, label:'Pierdes 2 tickets extra' },
-  { type:'nothing', symbol:null, chance:0.60, label:'Nada, sigue intentándolo' }
+  { type:'nothing', symbol:null, chance:0.76, label:'Nada, sigue intentándolo' }
 ];
 
 // Frases del Charizard crupier al entrar al casino — se elige una al azar cada vez
