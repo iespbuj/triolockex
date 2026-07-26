@@ -295,6 +295,69 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
   font-family:'Rajdhani', sans-serif; font-size: 13px; letter-spacing:1px;
 }
 
+/* ---------- Profile (revamp) ---------- */
+.profile-hero{
+  background: linear-gradient(160deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 30px 24px 26px;
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 18px;
+  position: relative;
+  overflow: hidden;
+}
+.profile-hero::before{
+  content:"";
+  position:absolute; top:-110px; left:50%; transform:translateX(-50%);
+  width: 380px; height: 210px;
+  background: radial-gradient(circle, rgba(79,127,255,0.16) 0%, rgba(79,127,255,0) 70%);
+  pointer-events:none;
+}
+.profile-hero-medal{ font-size: 28px; line-height:1; position:relative; }
+.profile-hero-name{
+  font-family:'Rajdhani', sans-serif; font-size: 30px; font-weight:700; letter-spacing:2px;
+  color: var(--silver-bright); margin: 8px 0 4px; position:relative;
+}
+.profile-hero-sub{ font-size:12px; color: var(--silver-dim); letter-spacing:1px; margin-bottom: 20px; position:relative; }
+.profile-hero-hearts{ position:relative; }
+.hero-count{ font-family:'JetBrains Mono', monospace; font-size:40px; font-weight:600; color: var(--silver-bright); }
+.hero-count.danger{ color: var(--danger); }
+.hero-count span{ font-size: 17px; color: var(--silver-dim); }
+.hero-actions{ display:flex; gap:8px; justify-content:center; margin-top:18px; flex-wrap:wrap; position:relative; }
+
+.stats-grid-2{
+  display:grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  max-width: 640px; margin: 0 auto 18px;
+}
+@media (max-width: 620px){ .stats-grid-2{ grid-template-columns: 1fr; } }
+.stat-card{
+  background: var(--panel); border:1px solid var(--border); border-radius:16px;
+  padding: 18px 20px;
+}
+.stat-card-label{
+  font-family:'Rajdhani', sans-serif; font-size:12px; color: var(--silver-dim);
+  letter-spacing:1.5px; text-transform:uppercase; font-weight:600; margin-bottom: 12px;
+}
+.stat-money-row{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 14px; }
+.stat-money-value{ font-family:'JetBrains Mono', monospace; font-size:22px; color: var(--silver-bright); font-weight:600; }
+.badge-row{ display:flex; gap:6px; flex-wrap:wrap; }
+.badge-pip{
+  width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; font-family:'Rajdhani',sans-serif;
+}
+.badge-pip.got{ border:1px solid var(--gold); background: radial-gradient(circle,var(--gold),#8a6a2e); color:#1c140a; }
+.badge-pip.not{ border:1px solid var(--border); background: var(--panel-2); color: var(--silver-dim); }
+.ticket-card{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; height:100%; }
+.ticket-value{ font-family:'JetBrains Mono', monospace; font-size:32px; color: var(--silver-bright); font-weight:600; }
+.ticket-value span{ font-size:14px; color: var(--silver-dim); margin-left:4px; }
+
+.team-section-header{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  max-width: 560px; margin: 0 auto 12px;
+}
+.team-section-header .section-label{ margin:0; text-align:left; }
+
 /* ---------- History ---------- */
 .history-list{ max-width: 640px; margin: 20px auto 0; display:flex; flex-direction:column; gap: 8px; }
 .history-item{
@@ -324,16 +387,81 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 
 /* ---------- Trade ---------- */
 .trade-header{ display:flex; justify-content:center; margin: 18px 0 26px; }
-.offer-card{
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px 18px;
-  max-width: 640px; margin: 0 auto 16px;
+
+.trade-toolbar{
+  display:flex; align-items:center; justify-content:center; gap: 14px;
+  margin: 18px 0 30px; flex-wrap:wrap;
 }
-.offer-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.offer-trainer{ font-family:'Rajdhani', sans-serif; font-weight:700; color: var(--silver-bright); font-size:16px; }
-.offer-time{ font-size: 11px; color: var(--silver-dim); }
+.trade-count-pill{
+  font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--silver-dim);
+  border:1px solid var(--border); border-radius:999px; padding:9px 18px;
+  background: var(--panel);
+}
+.trade-count-pill strong{ color: var(--silver-bright); font-weight:600; }
+
+.trade-card{
+  background: linear-gradient(165deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 22px 20px;
+  max-width: 640px; margin: 0 auto 18px;
+}
+.trade-card.closed{ opacity: .88; }
+.trade-card-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; gap:10px; flex-wrap:wrap; }
+.trade-offerer-name{ font-family:'Rajdhani', sans-serif; font-weight:700; color: var(--silver-bright); font-size:17px; letter-spacing:.5px; }
+.trade-offerer-tag{ font-size:11px; color: var(--silver-dim); text-transform:uppercase; letter-spacing:1.5px; margin-top:2px; }
+.trade-top-right{ display:flex; align-items:center; gap:12px; }
+.trade-time{ font-family:'JetBrains Mono', monospace; font-size:11px; color: var(--silver-dim); }
+.trade-icon-cancel{
+  background:none; border:1px solid var(--border); color: var(--silver-dim); cursor:pointer;
+  font-size:13px; width:26px; height:26px; border-radius:50%; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  transition: color .15s ease, border-color .15s ease;
+}
+.trade-icon-cancel:hover{ color: var(--danger); border-color: var(--danger-dim); }
+.trade-closed-tag{
+  font-family:'Rajdhani', sans-serif; font-size:10.5px; font-weight:700; letter-spacing:1.5px;
+  color: var(--gold); border:1px solid var(--gold); border-radius:999px; padding:3px 11px;
+}
+
+.trade-lane{ display:flex; align-items:stretch; gap: 12px; }
+.trade-side{ flex:1; min-width:0; }
+.trade-side-label{
+  font-family:'Rajdhani', sans-serif; font-size:10.5px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color: var(--silver-dim); margin-bottom:9px; display:block;
+}
+.trade-link{
+  flex: 0 0 auto; display:flex; align-items:center; justify-content:center;
+  width: 36px; position:relative;
+}
+.trade-link::before, .trade-link::after{
+  content:""; position:absolute; left:50%; width:1px;
+  background: linear-gradient(var(--border), transparent);
+}
+.trade-link::before{ top:0; height: calc(50% - 14px); }
+.trade-link::after{ bottom:0; height: calc(50% - 14px); transform: rotate(180deg); }
+.trade-link svg{ width:22px; height:22px; position:relative; z-index:1; filter: drop-shadow(0 0 6px rgba(79,127,255,0.45)); }
+
+.trade-side.empty-side{
+  border: 1px dashed var(--border); border-radius: 12px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px;
+  padding: 14px 12px; min-height: 66px; text-align:center;
+}
+.trade-side.empty-side .empty-txt{ font-size:11.5px; color: var(--silver-dim); line-height:1.4; }
+
+.trade-counters{ margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border); }
+.trade-counters-label{
+  font-family:'Rajdhani', sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color: var(--silver-dim); margin-bottom: 14px;
+}
+.trade-counter-row{
+  margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.trade-counter-row:last-child{ margin-bottom:0; padding-bottom:0; border-bottom:none; }
+.trade-counter-accept{ display:flex; justify-content:flex-end; margin-top:10px; }
+
+.trade-card-foot{ display:flex; gap:8px; margin-top: 18px; flex-wrap:wrap; }
+
 .chip-row{ display:flex; flex-wrap:wrap; gap: 8px; }
 .chip{
   display:flex; align-items:center; gap: 6px;
@@ -342,11 +470,12 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .chip img{ width: 20px; height:20px; object-fit:contain; }
 .chip span{ text-transform:capitalize; }
-.counters{ margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
-.counter-item{ margin-bottom: 10px; }
-.counter-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-.counter-name{ font-size:13px; color: var(--silver); font-family:'Rajdhani', sans-serif; font-weight:600; }
-.offer-actions{ display:flex; gap:8px; margin-top: 10px; flex-wrap:wrap; }
+
+@media (max-width: 480px){
+  .trade-lane{ flex-direction:column; gap: 14px; }
+  .trade-link{ width:100%; height: 22px; }
+  .trade-link::before, .trade-link::after{ display:none; }
+}
 
 .section-sub{
   font-family:'Rajdhani', sans-serif; letter-spacing:2px; text-transform:uppercase;
@@ -1011,7 +1140,7 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
   box-shadow: 0 0 0 5px #0d0e13, inset 0 0 26px rgba(0,0,0,0.6), inset 0 0 3px rgba(255,255,255,0.15);
 }
 .roulette-wheel.spinning-disc{ animation: wheelSpinDecor 3s cubic-bezier(0.12,0.68,0.22,1); }
-@keyframes wheelSpinDecor{ from{ transform: rotate(0deg); } to{ transform: rotate(-2520deg); } }
+@keyframes wheelSpinDecor{ from{ transform: translateX(-50%) rotate(0deg); } to{ transform: translateX(-50%) rotate(-2520deg); } }
 .roulette-pocket-rim{ position:absolute; inset:0; border-radius:50%; pointer-events:none; }
 .roulette-number{
   position:absolute; top:50%; left:50%;
@@ -2166,17 +2295,18 @@ function renderProfile(app, t){
   const wins = combatWinsOf(t);
   app.innerHTML = `
     <button class="back-btn" onclick="go('home')">← volver</button>
-    <div class="profile-header">
-      <h2>${rankOf[t].icon} ${NAMES[t]}</h2>
-      <div class="combat-count">🏆 ${wins} combate${wins===1?'':'s'} ganado${wins===1?'':'s'}</div>
-    </div>
 
-    <div class="hearts-panel">
-      <div class="big-count ${h<0?'danger':''}">${h}<span> / 20 vidas</span></div>
-      <div class="hearts-grid" id="gems-row">
-        ${gems.map(on=> `<div class="gem ${on?'':'empty'}"></div>`).join('')}
+    <div class="profile-hero">
+      <div class="profile-hero-medal">${rankOf[t].icon}</div>
+      <div class="profile-hero-name">${NAMES[t]}</div>
+      <div class="profile-hero-sub">🏆 ${wins} combate${wins===1?'':'s'} ganado${wins===1?'':'s'}</div>
+      <div class="profile-hero-hearts">
+        <div class="hero-count ${h<0?'danger':''}">${h}<span> / 20 vidas</span></div>
+        <div class="hearts-grid" id="gems-row">
+          ${gems.map(on=> `<div class="gem ${on?'':'empty'}"></div>`).join('')}
+        </div>
       </div>
-      <div class="action-row">
+      <div class="hero-actions">
         <button class="danger-outline" onclick="loseLife('${t}')">💔 Perder vida</button>
         <button class="ghost" onclick="addLife('${t}')">➕ Sumar vida</button>
         <button class="ghost" onclick="resetLives('${t}')">🔄 Restablecer</button>
@@ -2184,21 +2314,22 @@ function renderProfile(app, t){
       </div>
     </div>
 
-    <div class="hearts-panel" style="padding:18px 24px;">
-      <div class="mono" style="font-size:13px;color:var(--silver-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Progreso en el juego</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-size:13px;color:var(--silver-dim);">💰 Dinero</div>
-        <div class="mono" style="font-size:18px;color:var(--silver-bright);">${(money[t]||0).toLocaleString('es-ES')}</div>
+    <div class="stats-grid-2">
+      <div class="stat-card">
+        <div class="stat-card-label">Progreso en el juego</div>
+        <div class="stat-money-row">
+          <div style="font-size:13px;color:var(--silver-dim);">💰 Dinero</div>
+          <div class="stat-money-value">${(money[t]||0).toLocaleString('es-ES')}</div>
+        </div>
+        <div style="font-size:11px;color:var(--silver-dim);margin-bottom:8px;letter-spacing:.5px;">🏅 MEDALLAS (${gymBadgeCountOf(t)}/8)</div>
+        <div class="badge-row">
+          ${gymBadgesOf(t).map((got,i)=>`<div class="badge-pip ${got?'got':'not'}" title="Medalla ${i+1}">${i+1}</div>`).join('')}
+        </div>
       </div>
-      <div style="font-size:13px;color:var(--silver-dim);margin-bottom:8px;">🏅 Medallas (${gymBadgeCountOf(t)}/8)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${gymBadgesOf(t).map((got,i)=>`<div style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;border:1px solid ${got?'var(--gold)':'var(--border)'};background:${got?'radial-gradient(circle,var(--gold),#8a6a2e)':'var(--panel-2)'};color:${got?'#1c140a':'var(--silver-dim)'};" title="Medalla ${i+1}">${i+1}</div>`).join('')}
+      <div class="stat-card ticket-card">
+        <div class="stat-card-label">Saldo del casino</div>
+        <div class="ticket-value">🎟️ ${myTickets}<span>tickets</span></div>
       </div>
-    </div>
-
-    <div class="hearts-panel" style="padding:18px 24px;">
-      <div class="mono" style="font-size:13px;color:var(--silver-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Saldo del casino</div>
-      <div class="big-count" style="font-size:32px;">🎟️ ${myTickets}<span style="font-size:15px;"> tickets</span></div>
     </div>
 
     <div class="section-label">🎁 Premios pendientes</div>
@@ -2215,9 +2346,9 @@ function renderProfile(app, t){
       `).join('')}
     </div>`}
 
-    <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <span>Equipo principal</span>
-      <button class="ghost" style="font-size:12px;padding:6px 12px;" onclick="openImportSave('${t}')">📥 Importar desde save</button>
+    <div class="team-section-header">
+      <div class="section-label">Equipo principal</div>
+      <button class="ghost" onclick="openImportSave('${t}')">📥 Importar desde save</button>
     </div>
     <div class="team-grid">
       ${Array.from({length:6}).map((_,i)=>{
@@ -3181,54 +3312,98 @@ async function closeSancion(){
   if(!ok) queueRetry('sancion', saveSancion);
 }
 
+function tradeLinkIcon(){
+  return `<div class="trade-link">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M3 7H17M17 7L13 3M17 7L13 11" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M21 17H7M7 17L11 13M7 17L11 21" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>`;
+}
+function tradeChips(items){
+  return items.map(it=>`<div class="chip"><img src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span></div>`).join('');
+}
+
 function renderTrade(app){
   app.innerHTML = `
-    <div class="trade-header">
+    <div class="trade-toolbar">
       <button class="primary" onclick="openNewOffer()">+ Nueva oferta</button>
+      <div class="trade-count-pill"><strong>${tradesActive.length}</strong> activa${tradesActive.length===1?'':'s'} · <strong>${tradesHistory.length}</strong> cerrada${tradesHistory.length===1?'':'s'}</div>
     </div>
 
     <div class="section-label">Ofertas activas</div>
-    ${tradesActive.length===0 ? '<div class="empty-state">No hay ofertas activas.</div>' : tradesActive.map(o=>`
-      <div class="offer-card">
-        <div class="offer-top">
-          <div class="offer-trainer">${NAMES[o.trainer]} ofrece</div>
-          <div class="offer-time mono">${fmtTime(o.ts)}</div>
+    ${tradesActive.length===0 ? '<div class="empty-state">No hay ofertas activas ahora mismo.</div>' : tradesActive.map(o=>`
+      <div class="trade-card">
+        <div class="trade-card-top">
+          <div>
+            <div class="trade-offerer-name">${NAMES[o.trainer]}</div>
+            <div class="trade-offerer-tag">busca intercambio</div>
+          </div>
+          <div class="trade-top-right">
+            <div class="trade-time">${fmtTime(o.ts)}</div>
+            <button class="trade-icon-cancel" onclick="cancelOffer('${o.id}')" title="Cancelar oferta">✕</button>
+          </div>
         </div>
-        <div class="chip-row">
-          ${o.items.map(it=>`<div class="chip"><img src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span></div>`).join('')}
+
+        <div class="trade-lane">
+          <div class="trade-side">
+            <span class="trade-side-label">Ofrece</span>
+            <div class="chip-row">${tradeChips(o.items)}</div>
+          </div>
+          ${tradeLinkIcon()}
+          <div class="trade-side empty-side">
+            <span class="empty-txt">${o.counters.length===0 ? 'Sin contraofertas todavía' : `${o.counters.length} contraoferta${o.counters.length===1?'':'s'} · mira abajo`}</span>
+            <button class="ghost" style="font-size:11px;padding:5px 12px;" onclick="openCounterOffer('${o.id}')">+ Ofrecer a cambio</button>
+          </div>
         </div>
-        <div class="counters">
-          ${o.counters.length===0 ? `<div style="font-size:12px;color:var(--silver-dim)">Sin contraofertas todavía.</div>` : o.counters.map(c=>`
-            <div class="counter-item">
-              <div class="counter-top">
-                <span class="counter-name">${NAMES[c.trainer]} ofrece a cambio</span>
-                <button class="ghost" onclick="acceptTrade('${o.id}','${c.id}')">Aceptar</button>
+
+        ${o.counters.length>0 ? `
+        <div class="trade-counters">
+          <div class="trade-counters-label">Contraofertas</div>
+          ${o.counters.map(c=>`
+            <div class="trade-counter-row">
+              <div class="trade-lane">
+                <div class="trade-side">
+                  <span class="trade-side-label">${NAMES[c.trainer]} ofrece</span>
+                  <div class="chip-row">${tradeChips(c.items)}</div>
+                </div>
+                ${tradeLinkIcon()}
+                <div class="trade-side">
+                  <span class="trade-side-label">A cambio de</span>
+                  <div class="chip-row">${tradeChips(o.items)}</div>
+                </div>
               </div>
-              <div class="chip-row">
-                ${c.items.map(it=>`<div class="chip"><img src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span></div>`).join('')}
+              <div class="trade-counter-accept">
+                <button class="primary" onclick="acceptTrade('${o.id}','${c.id}')">✓ Aceptar este trade</button>
               </div>
             </div>
           `).join('')}
-        </div>
-        <div class="offer-actions">
-          <button class="ghost" onclick="openCounterOffer('${o.id}')">+ Ofrecer a cambio</button>
-          <button class="ghost" onclick="cancelOffer('${o.id}')">Cancelar oferta</button>
-        </div>
+        </div>` : ''}
       </div>
     `).join('')}
 
     <div class="section-sub">Historial de trades</div>
     ${tradesHistory.length===0 ? '<div class="empty-state">Todavía no se ha cerrado ningún trade.</div>' : tradesHistory.map(rec=>`
-      <div class="offer-card">
-        <div class="offer-top">
-          <div class="offer-trainer">${NAMES[rec.offerTrainer]} ↔ ${NAMES[rec.counterTrainer]}</div>
-          <div class="offer-time mono">${fmtTime(rec.ts)}</div>
+      <div class="trade-card closed">
+        <div class="trade-card-top">
+          <div class="trade-offerer-name">${NAMES[rec.offerTrainer]} ↔ ${NAMES[rec.counterTrainer]}</div>
+          <div class="trade-top-right">
+            <span class="trade-closed-tag">Cerrado</span>
+            <div class="trade-time">${fmtTime(rec.ts)}</div>
+          </div>
         </div>
-        <div style="font-size:12px;color:var(--silver-dim);margin-bottom:6px;">${NAMES[rec.offerTrainer]} dio:</div>
-        <div class="chip-row">${rec.offerItems.map(it=>`<div class="chip"><img src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span></div>`).join('')}</div>
-        <div style="font-size:12px;color:var(--silver-dim);margin:10px 0 6px;">${NAMES[rec.counterTrainer]} dio:</div>
-        <div class="chip-row">${rec.counterItems.map(it=>`<div class="chip"><img src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span></div>`).join('')}</div>
-        <div class="offer-actions">
+        <div class="trade-lane">
+          <div class="trade-side">
+            <span class="trade-side-label">${NAMES[rec.offerTrainer]} dio</span>
+            <div class="chip-row">${tradeChips(rec.offerItems)}</div>
+          </div>
+          ${tradeLinkIcon()}
+          <div class="trade-side">
+            <span class="trade-side-label">${NAMES[rec.counterTrainer]} dio</span>
+            <div class="chip-row">${tradeChips(rec.counterItems)}</div>
+          </div>
+        </div>
+        <div class="trade-card-foot">
           <button class="danger-outline" onclick="deleteTradeRecord('${rec.id}')">Eliminar (pagado)</button>
         </div>
       </div>
