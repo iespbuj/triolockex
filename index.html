@@ -571,6 +571,13 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 .tomb-species{ font-size:10px; color: var(--silver-dim); text-transform:capitalize; }
 .tomb-meta{ font-size:10px; color: var(--silver-dim); margin-top:4px; }
 .tomb-date{ font-size:9px; color: var(--silver-dim); opacity:.6; margin-top:4px; }
+
+.box-group{ margin-bottom:18px; }
+.box-group-label{
+  font-family:'Rajdhani', sans-serif; font-size:13px; font-weight:700; letter-spacing:.5px;
+  color: var(--silver-bright); margin-bottom:8px;
+}
+.box-group-count{ font-size:11px; font-weight:500; color: var(--silver-dim); }
 .err-msg{ color: var(--danger); font-size: 12px; margin-top: 6px; min-height: 14px; }
 
 .item-row-add{ display:flex; gap:8px; align-items:flex-end; margin-bottom: 12px; }
@@ -2365,7 +2372,7 @@ function allMonsOf(t){
     .map(([pid, m]) => ({
       pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
       level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
-      fainted: false, inTeam: false,
+      fainted: !!m.fainted, inTeam: false, box: m.box || null, boxName: m.boxName || null,
     }));
   return [...team, ...boxMons];
 }
@@ -2596,15 +2603,31 @@ function renderProfile(app, t){
         <button class="ghost" onclick="toggleBoxesFor('${t}')">${open ? 'Ocultar' : 'Ver cajas'}</button>
       </div>
       ${open ? (boxMons.length===0 ? '<div class="empty-state">No hay ningún Pokémon en cajas.</div>' : `
-        <div class="team-grid" style="grid-template-columns:repeat(auto-fill, minmax(84px, 1fr));">
-          ${boxMons.map(m=>`
-            <div class="poke-slot" onclick="openPokemonDetail('${t}','${m.pid}')" style="cursor:pointer;padding:8px 4px;">
-              <img src="${m.sprite}" alt="${m.speciesName}" style="width:56px;height:56px;">
-              <div class="poke-nick" style="font-size:11px;">${m.nickname}</div>
-              <div class="poke-species" style="font-size:9px;">${m.speciesName.replace(/-/g,' ')}</div>
+        ${(()=>{
+          const byBox = {};
+          boxMons.forEach(m=>{
+            const key = m.box || '?';
+            (byBox[key] = byBox[key] || []).push(m);
+          });
+          const boxNums = Object.keys(byBox).sort((a,b)=> (a==='?'?999:+a) - (b==='?'?999:+b));
+          return boxNums.map(boxNum => {
+            const label = byBox[boxNum][0].boxName || `Caja ${boxNum}`;
+            return `
+            <div class="box-group">
+              <div class="box-group-label">📦 ${label} <span class="box-group-count">(${byBox[boxNum].length})</span></div>
+              <div class="team-grid" style="grid-template-columns:repeat(auto-fill, minmax(84px, 1fr));">
+                ${byBox[boxNum].map(m=>`
+                  <div class="poke-slot${m.fainted ? ' fainted' : ''}" onclick="openPokemonDetail('${t}','${m.pid}')" style="cursor:pointer;padding:8px 4px;">
+                    <img src="${m.sprite}" alt="${m.speciesName}" style="width:56px;height:56px;">
+                    <div class="poke-nick" style="font-size:11px;">${m.nickname}</div>
+                    <div class="poke-species" style="font-size:9px;">${m.speciesName.replace(/-/g,' ')}</div>
+                    ${m.fainted ? `<div class="poke-fainted-tag">💀</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
             </div>
-          `).join('')}
-        </div>
+          `;}).join('');
+        })()}
       `) : ''}
       `;
     })()}
