@@ -513,6 +513,40 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color: var(--accent-dim); }
 .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top: 18px; }
+.news-list{ max-height: 320px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+.news-item{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding: 9px 4px; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.news-item:last-child{ border-bottom:none; }
+.news-text{ color: var(--silver-bright); line-height:1.4; }
+.news-time{ font-size: 11px; color: var(--silver-dim); white-space:nowrap; flex-shrink:0; }
+
+.poke-detail-hero{
+  position:relative; text-align:center; padding: 22px 16px 16px;
+  border-radius: 14px; margin-bottom: 14px;
+  background: radial-gradient(circle at 50% 0%, var(--accent-dim) 0%, var(--bg-elev) 75%);
+  border: 1px solid var(--border);
+}
+.poke-detail-hero img{ width: 104px; height: 104px; image-rendering: pixelated; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+.poke-detail-name{ font-family:'Rajdhani', sans-serif; font-size: 20px; font-weight:700; color: var(--silver-bright); letter-spacing:.3px; margin-top:2px; }
+.poke-detail-species{ font-size: 12px; color: var(--silver-dim); text-transform:capitalize; }
+.poke-detail-tag{
+  position:absolute; top:10px; left:10px; font-size:10px; font-weight:600;
+  padding: 3px 9px; border-radius:999px; letter-spacing:.3px;
+  background: rgba(79,127,255,0.16); color:#a9c3ff; border:1px solid rgba(79,127,255,0.4);
+}
+.poke-detail-tag.fainted{ background: rgba(224,92,92,0.16); color:#ff9a9a; border-color:rgba(224,92,92,0.4); }
+.poke-detail-grid{
+  display:grid; grid-template-columns: 1fr 1fr; gap:8px;
+}
+.poke-detail-stat{
+  background: var(--panel); border:1px solid var(--border); border-radius:10px;
+  padding: 8px 12px; display:flex; flex-direction:column; gap:2px;
+}
+.pd-label{ font-size:10px; letter-spacing:.5px; text-transform:uppercase; color: var(--silver-dim); }
+.pd-value{ font-size:14px; font-weight:600; color: var(--silver-bright); }
 .err-msg{ color: var(--danger); font-size: 12px; margin-top: 6px; min-height: 14px; }
 
 .item-row-add{ display:flex; gap:8px; align-items:flex-end; margin-bottom: 12px; }
@@ -2155,6 +2189,45 @@ function pushHistory(text){
   history.unshift({id: crypto.randomUUID(), text, ts: Date.now()});
   history = history.slice(0, 300);
   storeSet('x:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>storeSet('x:history', history)); });
+}
+
+/* ---- Popup de novedades al abrir la web: solo una vez, luego no vuelve a
+   salir hasta que haya algo nuevo desde la ultima vez que se vio en ESTE
+   dispositivo/navegador (se recuerda con localStorage, igual que el volumen). ---- */
+const NEWS_SEEN_KEY = 'triolocke_news_last_seen_ts';
+function showNewsPopupIfAny(){
+  const lastSeen = parseInt(localStorage.getItem(NEWS_SEEN_KEY) || '0', 10);
+  if(!lastSeen){
+    // primera vez que se abre la web en este dispositivo: no bombardeamos con
+    // todo el historial de golpe, solo marcamos el punto de partida.
+    localStorage.setItem(NEWS_SEEN_KEY, String(Date.now()));
+    return;
+  }
+  const nuevas = history.filter(h => h.ts > lastSeen).slice(0, 12);
+  localStorage.setItem(NEWS_SEEN_KEY, String(Date.now()));
+  if(nuevas.length === 0) return;
+  openModal(`
+    <h3>📰 Novedades</h3>
+    <div class="news-list">
+      ${nuevas.map(h=>`
+        <div class="news-item">
+          <span class="news-text">${h.text}</span>
+          <span class="news-time">${newsRelativeTime(h.ts)}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="primary" onclick="closeModal()">Vale, enterado</button>
+    </div>
+  `);
+}
+function newsRelativeTime(ts){
+  const diffMin = Math.round((Date.now() - ts) / 60000);
+  if(diffMin < 1) return 'ahora mismo';
+  if(diffMin < 60) return `hace ${diffMin} min`;
+  const diffH = Math.round(diffMin/60);
+  if(diffH < 24) return `hace ${diffH}h`;
+  return `hace ${Math.round(diffH/24)}d`;
 }
 
 async function addTickets(t, amount, reason){
@@ -4572,17 +4645,33 @@ function openPokemonDetail(ownerTrainer, pid){
   const mon = allMonsOf(ownerTrainer).find(m=>m.pid===pid);
   if(!mon) return;
   openModal(`
-    <h3>${mon.nickname}</h3>
-    <div style="text-align:center;margin-bottom:12px;">
-      <img src="${mon.sprite}" alt="${mon.speciesName}" style="width:96px;height:96px;">
-      <div style="font-size:13px;color:var(--silver-dim);">${mon.speciesName.replace(/-/g,' ')}</div>
-    </div>
-    <div style="font-size:12px;color:var(--silver-dim);line-height:1.8;">
-      <div>Entrenador: <strong style="color:var(--silver-bright);">${NAMES[ownerTrainer]}</strong></div>
-      ${mon.level!=null ? `<div>Nivel actual: <strong style="color:var(--silver-bright);">${mon.level}</strong></div>` : ''}
-      ${mon.metLevel!=null ? `<div>Capturado a nivel: <strong style="color:var(--silver-bright);">${mon.metLevel}</strong></div>` : ''}
-      <div>Capturado en: <strong style="color:var(--silver-bright);">${mon.metLocationName || 'Desconocido'}</strong></div>
-      ${mon.fainted ? `<div style="color:#e05c5c;">💀 Debilitado</div>` : ''}
+    <div class="poke-detail">
+      <div class="poke-detail-hero">
+        ${mon.fainted ? `<div class="poke-detail-tag fainted">💀 Debilitado</div>` : `<div class="poke-detail-tag">${mon.inTeam ? '⚔️ En equipo' : '📦 En caja'}</div>`}
+        <img src="${mon.sprite}" alt="${mon.speciesName}">
+        <div class="poke-detail-name">${mon.nickname}</div>
+        <div class="poke-detail-species">${mon.speciesName.replace(/-/g,' ')}</div>
+      </div>
+      <div class="poke-detail-grid">
+        <div class="poke-detail-stat">
+          <span class="pd-label">Entrenador</span>
+          <span class="pd-value">${NAMES[ownerTrainer]}</span>
+        </div>
+        ${mon.level!=null ? `
+        <div class="poke-detail-stat">
+          <span class="pd-label">Nivel actual</span>
+          <span class="pd-value">${mon.level}</span>
+        </div>` : ''}
+        ${mon.metLevel!=null ? `
+        <div class="poke-detail-stat">
+          <span class="pd-label">Capturado a nivel</span>
+          <span class="pd-value">${mon.metLevel}</span>
+        </div>` : ''}
+        <div class="poke-detail-stat" style="grid-column:1/-1;">
+          <span class="pd-label">📍 Capturado en</span>
+          <span class="pd-value">${mon.metLocationName || 'Desconocido'}</span>
+        </div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal()">Cerrar</button>
@@ -4788,6 +4877,7 @@ async function deleteTradeRecord(id){
   await loadAll();
   await seedDefaultNormasIfMissing();
   render();
+  showNewsPopupIfAny();
   setInterval(async ()=>{
     if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing) return; // don't refresh mid-edit or mid-spin
     await loadAll();
