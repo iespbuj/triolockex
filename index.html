@@ -399,37 +399,6 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .trade-count-pill strong{ color: var(--silver-bright); font-weight:600; }
 
-/* ---------- Ruleta Pokémon (trades) ---------- */
-.poke-roulette-wrap{ display:flex; flex-direction:column; align-items:center; gap: 18px; }
-.poke-roulette-frame{
-  position:relative; width: 220px; height: 220px; border-radius:50%;
-  background: radial-gradient(circle at 50% 40%, var(--panel-2) 0%, var(--bg-elev) 75%);
-  border: 3px solid var(--border);
-  display:flex; align-items:center; justify-content:center;
-  overflow:hidden;
-  box-shadow: 0 0 0 6px var(--bg-elev), 0 10px 30px rgba(0,0,0,0.4);
-}
-.poke-roulette-frame.spinning{ animation: poke-roulette-glow 0.5s ease-in-out infinite alternate; border-color: var(--accent); }
-@keyframes poke-roulette-glow{
-  from{ box-shadow: 0 0 0 6px var(--bg-elev), 0 0 18px rgba(79,127,255,0.35); }
-  to{ box-shadow: 0 0 0 6px var(--bg-elev), 0 0 34px rgba(79,127,255,0.7); }
-}
-.poke-roulette-pointer{
-  position:absolute; top:-4px; left:50%; transform:translateX(-50%);
-  width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent;
-  border-top: 14px solid var(--gold); z-index:2; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
-}
-.poke-roulette-img{
-  width: 150px; height: 150px; object-fit:contain;
-  image-rendering: auto;
-}
-.poke-roulette-frame.spinning .poke-roulette-img{ filter: blur(1.5px); }
-.poke-roulette-name{
-  font-family:'Rajdhani', sans-serif; font-weight:700; font-size:22px; letter-spacing:1.5px;
-  color: var(--silver-bright); text-transform:capitalize; min-height: 28px; text-align:center;
-}
-.poke-roulette-sub{ font-size:12px; color: var(--silver-dim); letter-spacing:1px; text-align:center; min-height:16px; }
-
 .trade-card{
   background: linear-gradient(165deg, var(--panel) 0%, var(--bg-elev) 100%);
   border: 1px solid var(--border);
@@ -1144,6 +1113,15 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 
 .slot-title{ font-family:'Rajdhani',sans-serif; font-weight:700; font-size:19px; letter-spacing:2px; color: var(--silver-bright); margin-bottom: 4px; }
 .slot-sub{ font-size: 11px; color: var(--silver-dim); margin-bottom: 18px; letter-spacing:.5px; }
+.slot-multiplier-row{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px; }
+.slot-mult-btn{
+  background: var(--panel); border:1px solid var(--border); color: var(--silver-dim);
+  border-radius: 10px; padding: 6px 14px; font-size:13px; font-weight:700; cursor:pointer;
+  font-family: inherit; transition: all .15s ease;
+}
+.slot-mult-btn.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--silver-bright); }
+.slot-mult-btn:disabled{ opacity:.4; cursor:not-allowed; }
+.slot-mult-cost{ font-size:11px; color: var(--silver-dim); margin-left:4px; }
 
 .slot-screen{
   background: #05060a; border-radius: 14px; padding: 18px 10px;
@@ -1855,6 +1833,7 @@ let money = {}, badgesRaw = {}; // sincronizados automáticamente por vidas_watc
 let locationName = {}; // idem: ubicacion actual en el juego (zona/mapa)
 let collections = {}; // idem: coleccion completa (equipo+cajas) por entrenador, para poder ver/ofertar cualquier Pokémon
 let graveyard = {}; // idem: cementerio (Pokémon caídos) por entrenador
+let manualFainted = {}; // override manual por si el watcher se equivoca: {trainer: [pids]}
 let boxesOpenFor = null; // que perfil tiene la seccion de cajas desplegada ahora mismo
 function toggleBoxesFor(t){ boxesOpenFor = (boxesOpenFor===t) ? null : t; render(); }
 const DAILY_BONUS_AMOUNT = 10;
@@ -1898,14 +1877,15 @@ const SLOT_MACHINES = [
 const SLOT_SPIN_COST = 1;
 const SLOT_FILLER_SYMBOLS = ['🍒','🔔','🍋','⭐'];
 // Tabla de probabilidades de la tragaperras (deben sumar 1.0)
-// Bajada pedida por el grupo: jackpot casi imposible, resto de premios mas duros.
+// Bajada pedida por el grupo: todo a 1% salvo la maldicion (5%), para frenar
+// el farmeo -- la inmensa mayoria de tiradas no deberian dar nada.
 const SLOT_OUTCOMES = [
-  { type:'jackpot', symbol:'👑', chance:0.02, label:'¡JACKPOT! Legendario' },
-  { type:'capture', symbol:'🎁', chance:0.06, label:'1 captura extra' },
-  { type:'egg',     symbol:'🥚', chance:0.06, label:'Huevo random' },
-  { type:'revive',  symbol:'❤️‍🩹', chance:0.05, label:'Revivir un Pokémon muerto a elegir' },
+  { type:'jackpot', symbol:'👑', chance:0.01, label:'¡JACKPOT! Legendario' },
+  { type:'capture', symbol:'🎁', chance:0.01, label:'1 captura extra' },
+  { type:'egg',     symbol:'🥚', chance:0.01, label:'Huevo random' },
+  { type:'revive',  symbol:'❤️‍🩹', chance:0.01, label:'Revivir un Pokémon muerto a elegir' },
   { type:'curse',   symbol:'💀', chance:0.05, label:'Pierdes 2 tickets extra' },
-  { type:'nothing', symbol:null, chance:0.76, label:'Nada, sigue intentándolo' }
+  { type:'nothing', symbol:null, chance:0.91, label:'Nada, sigue intentándolo' }
 ];
 
 // Frases del Charizard crupier al entrar al casino — se elige una al azar cada vez
@@ -1986,7 +1966,9 @@ let casinoMachine = null; // id de la máquina abierta, o null = grid de selecci
 let casinoFloor = true; // true = mostrando la escena del casino, false = dentro de una sección
 let slotSpinning = false;
 let slotReels = ['🍒','🔔','🍋'];
+let slotMultiplier = 1; // 1, 2, 5 o 10 tiradas de golpe
 let slotJackpotMachine = null; // si !=null, mostrar la mini-ruleta de legendarios de esa máquina
+let slotJackpotQueue = 0; // cuantos jackpots mas quedan por resolver (tiradas x2/x5/x10 con mas de un jackpot)
 let slotJackpotSpinning = false;
 let slotJackpotRotation = 0;
 
@@ -2022,17 +2004,12 @@ let currentTrainer = null;
 let loaded = false;
 
 let POKEMON_NAMES = [];
-let POKEMON_LIST = []; // [{name, id}] — para la ruleta de trades (necesita sprite por id, sin fetch por bicho)
 let ITEM_NAMES = [];
 async function loadNameLists(){
   try{
     const r1 = await fetch('https://pokeapi.co/api/v2/pokemon?limit=20000');
     const d1 = await r1.json();
     POKEMON_NAMES = d1.results.map(p=>p.name);
-    POKEMON_LIST = d1.results.map(p=>{
-      const m = p.url.match(/\/pokemon\/(\d+)\//);
-      return { name: p.name, id: m ? parseInt(m[1],10) : null };
-    }).filter(p=>p.id!=null);
   }catch(e){ console.error('failed to load pokemon list', e); }
   try{
     const r2 = await fetch('https://pokeapi.co/api/v2/item?limit=3000');
@@ -2091,7 +2068,7 @@ async function storeSet(key, val){
 }
 
 async function loadAll(){
-  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults] = await Promise.all([
+  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
@@ -2101,7 +2078,8 @@ async function loadAll(){
     storeGet('x:sancion', { offender: null, prize: null }),
     storeGet('x:loteria', { pot: 0, entries: [], history: [] }),
     Promise.all(TRAINERS.map(t => storeGet('x:collection:'+t, {pids:{}}))),
-    Promise.all(TRAINERS.map(t => storeGet('x:graveyard:'+t, [])))
+    Promise.all(TRAINERS.map(t => storeGet('x:graveyard:'+t, []))),
+    Promise.all(TRAINERS.map(t => storeGet('x:manualFainted:'+t, [])))
   ]);
   TRAINERS.forEach((t, i) => {
     hearts[t] = profileResults[i].hearts;
@@ -2123,6 +2101,7 @@ async function loadAll(){
   loteria = loteriaResult;
   TRAINERS.forEach((t, i) => { collections[t] = collectionResults[i].pids || {}; });
   TRAINERS.forEach((t, i) => { graveyard[t] = graveyardResults[i] || []; });
+  TRAINERS.forEach((t, i) => { manualFainted[t] = manualFaintedResults[i] || []; });
   loaded = true;
 }
 async function saveProfile(t){
@@ -2265,6 +2244,13 @@ function pushHistory(text){
    salir hasta que haya algo nuevo desde la ultima vez que se vio en ESTE
    dispositivo/navegador (se recuerda con localStorage, igual que el volumen). ---- */
 const NEWS_SEEN_KEY = 'triolocke_news_last_seen_ts';
+// Solo estas categorías cuentan como "novedad" para el popup: muertes (💔),
+// shinies (✨) y capturas nuevas (🆕). Todo lo demás (tickets, trades,
+// normas, casino...) se queda fuera aposta.
+const NEWS_RELEVANT_PREFIXES = ['💔', '✨', '🆕'];
+function isNewsRelevant(text){
+  return NEWS_RELEVANT_PREFIXES.some(p => text.startsWith(p));
+}
 function showNewsPopupIfAny(){
   const lastSeen = parseInt(localStorage.getItem(NEWS_SEEN_KEY) || '0', 10);
   if(!lastSeen){
@@ -2273,7 +2259,7 @@ function showNewsPopupIfAny(){
     localStorage.setItem(NEWS_SEEN_KEY, String(Date.now()));
     return;
   }
-  const nuevas = history.filter(h => h.ts > lastSeen).slice(0, 12);
+  const nuevas = history.filter(h => h.ts > lastSeen && isNewsRelevant(h.text)).slice(0, 12);
   localStorage.setItem(NEWS_SEEN_KEY, String(Date.now()));
   if(nuevas.length === 0) return;
   openModal(`
@@ -2397,10 +2383,11 @@ function overCapMonsOf(t){
 // + los que estén en cajas (nunca debilitados, eso solo existe en equipo).
 // Sirve tanto para "ver un Pokémon en detalle" como para "elegir con cuál ofertar".
 function allMonsOf(t){
+  const manualSet = new Set(manualFainted[t]||[]);
   const team = (teams[t]||[]).map(p => ({
     pid: p.pid, nickname: p.nickname, speciesName: p.species, sprite: p.sprite,
     level: p.level, metLocationName: p.metLocationName || null, metLevel: p.metLevel,
-    fainted: !!p.fainted, inTeam: true,
+    fainted: !!p.fainted || manualSet.has(p.pid), inTeam: true,
   }));
   const teamPids = new Set(team.map(m=>m.pid));
   const boxMons = Object.entries(collections[t]||{})
@@ -2408,7 +2395,7 @@ function allMonsOf(t){
     .map(([pid, m]) => ({
       pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
       level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
-      fainted: !!m.fainted, inTeam: false, box: m.box || null, boxName: m.boxName || null,
+      fainted: !!m.fainted || manualSet.has(pid), inTeam: false, box: m.box || null, boxName: m.boxName || null,
     }));
   return [...team, ...boxMons];
 }
@@ -2965,6 +2952,11 @@ function renderSlotMachine(id){
         <div class="slot-title">${machine.emoji} ${machine.name.toUpperCase()}</div>
         <div class="slot-sub">Jugando: ${NAMES[casinoPlayer]} · coste ${SLOT_SPIN_COST} tickets por tirada</div>
 
+        <div class="slot-multiplier-row">
+          ${[1,2,5,10].map(n=>`<button class="slot-mult-btn ${slotMultiplier===n?'active':''}" ${slotSpinning?'disabled':''} onclick="setSlotMultiplier(${n})">x${n}</button>`).join('')}
+          <span class="slot-mult-cost">= ${SLOT_SPIN_COST * slotMultiplier} tickets</span>
+        </div>
+
         <div class="slot-machine-row">
           <div class="slot-screen" id="slot-screen">
             ${slotReels.map((s,i)=>`<div class="slot-reel ${slotSpinning?'spinning':''}" id="slot-reel-${i}">${s}</div>`).join('')}
@@ -3007,10 +2999,17 @@ function pickWeighted(list){
   return list[list.length-1];
 }
 
+function setSlotMultiplier(n){
+  if(slotSpinning) return;
+  slotMultiplier = n;
+  render();
+}
+
 async function pullLever(machineId){
   if(slotSpinning) return;
-  if((tickets[casinoPlayer]||0) < SLOT_SPIN_COST){
-    slotResultText = `No tienes suficientes tickets (necesitas ${SLOT_SPIN_COST}).`;
+  const totalCost = SLOT_SPIN_COST * slotMultiplier;
+  if((tickets[casinoPlayer]||0) < totalCost){
+    slotResultText = `No tienes suficientes tickets (necesitas ${totalCost}).`;
     slotResultClass = 'lose';
     render();
     return;
@@ -3021,21 +3020,28 @@ async function pullLever(machineId){
   render();
   playSound('lever');
 
-  // Cobrar el coste de la tirada de inmediato
-  await addTickets(casinoPlayer, -SLOT_SPIN_COST, 'Tirada de tragaperras');
+  // Cobrar el coste total de golpe
+  await addTickets(casinoPlayer, -totalCost, `Tirada x${slotMultiplier} de tragaperras`);
 
-  const outcome = pickWeighted(SLOT_OUTCOMES);
+  // Se resuelven TODAS las tiradas ya (aunque solo se vea una animación)
+  const outcomes = Array.from({length: slotMultiplier}, () => pickWeighted(SLOT_OUTCOMES));
+  const mainOutcome = outcomes.find(o => o.type === 'jackpot')
+    || outcomes.slice().sort((a,b)=>{
+      // para el símbolo de la animación: prioriza el premio más "gordo" que haya salido
+      const rank = {jackpot:5, revive:4, egg:3, capture:2, curse:1, nothing:0};
+      return rank[b.type]-rank[a.type];
+    })[0];
 
   // Animación: cada carrete cambia de símbolo rápido y va parando en cascada
-  const finalSymbols = outcome.symbol
-    ? [outcome.symbol, outcome.symbol, outcome.symbol]
+  const finalSymbols = mainOutcome.symbol
+    ? [mainOutcome.symbol, mainOutcome.symbol, mainOutcome.symbol]
     : [
         SLOT_FILLER_SYMBOLS[Math.floor(Math.random()*SLOT_FILLER_SYMBOLS.length)],
         SLOT_FILLER_SYMBOLS[Math.floor(Math.random()*SLOT_FILLER_SYMBOLS.length)],
         SLOT_FILLER_SYMBOLS[Math.floor(Math.random()*SLOT_FILLER_SYMBOLS.length)]
       ];
   // Evitar que "nada" salga igual en los 3 por casualidad (para que se lea bien como "no premio")
-  if(!outcome.symbol && finalSymbols[0]===finalSymbols[1] && finalSymbols[1]===finalSymbols[2]){
+  if(!mainOutcome.symbol && finalSymbols[0]===finalSymbols[1] && finalSymbols[1]===finalSymbols[2]){
     finalSymbols[2] = SLOT_FILLER_SYMBOLS.find(s=>s!==finalSymbols[0]) || finalSymbols[2];
   }
 
@@ -3068,57 +3074,112 @@ async function pullLever(machineId){
 
   setTimeout(async ()=>{
     slotSpinning = false;
-    const cabinetEl = document.querySelector('.slot-cabinet');
-    const screenEl = document.getElementById('slot-screen');
-
-    if(outcome.type === 'jackpot'){
-      slotResultText = `🎉 ¡JACKPOT! Gira la ruleta de legendarios de ${machineId ? SLOT_MACHINES.find(m=>m.id===machineId).name : ''} · ${pickLine(WIN_REACTIONS)}`;
-      slotResultClass = 'win';
-      if(cabinetEl) cabinetEl.classList.add('jackpot-shake');
-      playSound('jackpot');
-      fireConfetti({ count: 180 });
-      render();
-      slotJackpotMachine = machineId;
-      slotJackpotRotation = 0;
-      casinoModeLine = pickLine(JACKPOT_LINES);
-      render();
-    } else if(outcome.type === 'egg'){
-      slotResultText = `🥚 ¡Te llevas un huevo random! ${pickLine(WIN_REACTIONS)}`;
-      slotResultClass = 'win';
-      if(screenEl) screenEl.classList.add('win-glow');
-      playSound('win');
-      fireConfetti({ count: 90 });
-      await addPendingPrize(casinoPlayer, 'Huevo random', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
-      render();
-    } else if(outcome.type === 'revive'){
-      slotResultText = `❤️‍🩹 ¡Puedes revivir un Pokémon muerto a tu elección! ${pickLine(WIN_REACTIONS)}`;
-      slotResultClass = 'win';
-      if(screenEl) screenEl.classList.add('win-glow');
-      playSound('win');
-      fireConfetti({ count: 90 });
-      await addPendingPrize(casinoPlayer, 'Revivir un Pokémon muerto a elegir', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
-      render();
-    } else if(outcome.type === 'capture'){
-      slotResultText = `🎁 ¡1 captura extra! ${pickLine(WIN_REACTIONS)}`;
-      slotResultClass = 'win';
-      if(screenEl) screenEl.classList.add('win-glow');
-      playSound('win');
-      fireConfetti({ count: 90 });
-      await addPendingPrize(casinoPlayer, '1 captura extra', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
-      render();
-    } else if(outcome.type === 'curse'){
-      slotResultText = `💀 Mala suerte, pierdes 2 tickets extra. ${pickLine(LOSE_REACTIONS)}`;
-      slotResultClass = 'lose';
-      playSound('curse');
-      await addTickets(casinoPlayer, -2, 'Mala suerte en la tragaperras');
-      render();
+    if(slotMultiplier === 1){
+      await resolveSingleSlotOutcome(machineId, outcomes[0]);
     } else {
-      slotResultText = `Sin premio esta vez. ${pickLine(LOSE_REACTIONS)}`;
-      slotResultClass = '';
-      playSound('lose');
-      render();
+      await resolveMultiSlotOutcomes(machineId, outcomes);
     }
   }, 1000);
+}
+
+async function resolveSingleSlotOutcome(machineId, outcome){
+  const cabinetEl = document.querySelector('.slot-cabinet');
+  const screenEl = document.getElementById('slot-screen');
+
+  if(outcome.type === 'jackpot'){
+    slotResultText = `🎉 ¡JACKPOT! Gira la ruleta de legendarios de ${machineId ? SLOT_MACHINES.find(m=>m.id===machineId).name : ''} · ${pickLine(WIN_REACTIONS)}`;
+    slotResultClass = 'win';
+    if(cabinetEl) cabinetEl.classList.add('jackpot-shake');
+    playSound('jackpot');
+    fireConfetti({ count: 180 });
+    render();
+    slotJackpotMachine = machineId;
+    slotJackpotRotation = 0;
+    casinoModeLine = pickLine(JACKPOT_LINES);
+    render();
+  } else if(outcome.type === 'egg'){
+    slotResultText = `🥚 ¡Te llevas un huevo random! ${pickLine(WIN_REACTIONS)}`;
+    slotResultClass = 'win';
+    if(screenEl) screenEl.classList.add('win-glow');
+    playSound('win');
+    fireConfetti({ count: 90 });
+    await addPendingPrize(casinoPlayer, 'Huevo random', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
+    render();
+  } else if(outcome.type === 'revive'){
+    slotResultText = `❤️‍🩹 ¡Puedes revivir un Pokémon muerto a tu elección! ${pickLine(WIN_REACTIONS)}`;
+    slotResultClass = 'win';
+    if(screenEl) screenEl.classList.add('win-glow');
+    playSound('win');
+    fireConfetti({ count: 90 });
+    await addPendingPrize(casinoPlayer, 'Revivir un Pokémon muerto a elegir', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
+    render();
+  } else if(outcome.type === 'capture'){
+    slotResultText = `🎁 ¡1 captura extra! ${pickLine(WIN_REACTIONS)}`;
+    slotResultClass = 'win';
+    if(screenEl) screenEl.classList.add('win-glow');
+    playSound('win');
+    fireConfetti({ count: 90 });
+    await addPendingPrize(casinoPlayer, '1 captura extra', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
+    render();
+  } else if(outcome.type === 'curse'){
+    slotResultText = `💀 Mala suerte, pierdes 2 tickets extra. ${pickLine(LOSE_REACTIONS)}`;
+    slotResultClass = 'lose';
+    playSound('curse');
+    await addTickets(casinoPlayer, -2, 'Mala suerte en la tragaperras');
+    render();
+  } else {
+    slotResultText = `Sin premio esta vez. ${pickLine(LOSE_REACTIONS)}`;
+    slotResultClass = '';
+    playSound('lose');
+    render();
+  }
+}
+
+async function resolveMultiSlotOutcomes(machineId, outcomes){
+  const machine = SLOT_MACHINES.find(m=>m.id===machineId);
+  const tally = {};
+  outcomes.forEach(o => { tally[o.type] = (tally[o.type]||0) + 1; });
+
+  const jackpotCount = tally.jackpot || 0;
+  const curseCount = tally.curse || 0;
+  const captureCount = tally.capture || 0;
+  const eggCount = tally.egg || 0;
+  const reviveCount = tally.revive || 0;
+
+  // Aplicar efectos agregados (secuencial para no pisarse entre tickets/premios)
+  for(let i=0;i<captureCount;i++) await addPendingPrize(casinoPlayer, '1 captura extra', 'Tragaperras x' + slotMultiplier + ' · ' + machine.name);
+  for(let i=0;i<eggCount;i++) await addPendingPrize(casinoPlayer, 'Huevo random', 'Tragaperras x' + slotMultiplier + ' · ' + machine.name);
+  for(let i=0;i<reviveCount;i++) await addPendingPrize(casinoPlayer, 'Revivir un Pokémon muerto a elegir', 'Tragaperras x' + slotMultiplier + ' · ' + machine.name);
+  if(curseCount > 0) await addTickets(casinoPlayer, -2*curseCount, `Mala suerte x${curseCount} en la tragaperras`);
+
+  if(jackpotCount > 0) fireConfetti({ count: 180 });
+  playSound(jackpotCount>0 ? 'jackpot' : (captureCount+eggCount+reviveCount)>0 ? 'win' : 'lose');
+
+  const order = ['jackpot','revive','egg','capture','curse','nothing'];
+  const rows = order.filter(t => tally[t] > 0).map(t=>{
+    const def = SLOT_OUTCOMES.find(o=>o.type===t);
+    const extra = t==='curse' ? ` (−${2*tally[t]} tickets)` : '';
+    return `<div class="news-item"><span class="news-text">${def.symbol||'❌'} ${def.label}${extra}</span><span class="news-time">x${tally[t]}</span></div>`;
+  }).join('');
+
+  openModal(`
+    <h3>🎰 Resultado de ${slotMultiplier} tiradas</h3>
+    <div class="news-list">${rows}</div>
+    <div class="modal-actions">
+      <button class="primary" onclick="closeModal()">Vale</button>
+    </div>
+  `);
+  slotResultText = '';
+  slotResultClass = '';
+  render();
+
+  if(jackpotCount > 0){
+    slotJackpotQueue = jackpotCount - 1;
+    slotJackpotMachine = machineId;
+    slotJackpotRotation = 0;
+    casinoModeLine = pickLine(JACKPOT_LINES);
+    render();
+  }
 }
 
 function renderJackpotWheel(){
@@ -3185,6 +3246,15 @@ function spinJackpotWheel(){
     fireConfetti({ count: 200 });
     await addPendingPrize(casinoPlayer, `Legendario: ${won}`, 'Jackpot tragaperras · ' + machine.name);
     await rouletteLifeRiskCheck(casinoPlayer);
+    if(slotJackpotQueue > 0){
+      // quedan mas jackpots de la misma tirada multiple: se gira otra vez
+      slotJackpotQueue -= 1;
+      slotJackpotRotation = 0;
+      slotResultText = '';
+      slotResultClass = '';
+      render();
+      return;
+    }
     slotJackpotMachine = null;
     casinoMachine = null;
     slotResultText = '';
@@ -3693,7 +3763,6 @@ function renderTrade(app){
   app.innerHTML = `
     <div class="trade-toolbar">
       <button class="primary" onclick="openNewOffer()">+ Nueva oferta</button>
-      <button class="ghost" onclick="openPokeRoulette()">🎡 Ruleta Pokémon</button>
       <div class="trade-count-pill"><strong>${tradesActive.length}</strong> activa${tradesActive.length===1?'':'s'} · <strong>${tradesHistory.length}</strong> cerrada${tradesHistory.length===1?'':'s'}</div>
     </div>
 
@@ -4661,9 +4730,6 @@ async function confirmImportTeam(t){
 }
 
 /* ---------------- PokeAPI helpers ---------------- */
-function pokeIdSprite(id){
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-}
 async function fetchPokemonSprite(name){
   const slug = name.toLowerCase().trim().replace(/\s+/g,'-');
   const res = await fetch('https://pokeapi.co/api/v2/pokemon/'+slug);
@@ -4763,87 +4829,6 @@ function openCounterOffer(offerId){
   openNewGenericOffer('counter', offerId);
 }
 
-/* ---- Ruleta Pokémon: elige al azar entre TODOS los Pokémon del juego ---- */
-let pokeRouletteSpinning = false;
-let pokeRouletteResult = null;
-let pokeRouletteTimer = null;
-
-function openPokeRoulette(){
-  pokeRouletteResult = null;
-  renderPokeRouletteModal();
-}
-function renderPokeRouletteModal(){
-  const ready = POKEMON_LIST.length > 0;
-  const shown = pokeRouletteResult || (ready ? POKEMON_LIST[Math.floor(Math.random()*POKEMON_LIST.length)] : null);
-  openModal(`
-    <h3>🎡 Ruleta Pokémon</h3>
-    ${!ready ? `<div class="empty-state">Cargando la lista de Pokémon… inténtalo de nuevo en unos segundos.</div>` : `
-    <div class="poke-roulette-wrap">
-      <div class="poke-roulette-frame" id="poke-roulette-frame">
-        <div class="poke-roulette-pointer"></div>
-        <img class="poke-roulette-img" id="poke-roulette-img" src="${pokeIdSprite(shown.id)}" onerror="this.style.opacity=0">
-      </div>
-      <div class="poke-roulette-name" id="poke-roulette-name">${pokeRouletteResult ? pokeRouletteResult.name.replace(/-/g,' ') : '¿Quién saldrá?'}</div>
-      <div class="poke-roulette-sub" id="poke-roulette-sub">${pokeRouletteResult ? '¡Ha salido este Pokémon!' : `${POKEMON_LIST.length} Pokémon posibles`}</div>
-    </div>
-    `}
-    <div class="modal-actions">
-      <button class="ghost" onclick="closeModal()">Cerrar</button>
-      ${ready ? `<button class="primary" id="poke-roulette-spin-btn" onclick="spinPokeRoulette()">${pokeRouletteResult ? '🎡 Girar de nuevo' : '🎡 Girar'}</button>` : ''}
-    </div>
-  `);
-}
-function spinPokeRoulette(){
-  if(pokeRouletteSpinning || POKEMON_LIST.length===0) return;
-  pokeRouletteSpinning = true;
-  pokeRouletteResult = null;
-  playSound('spin');
-  const frame = document.getElementById('poke-roulette-frame');
-  const btn = document.getElementById('poke-roulette-spin-btn');
-  const subEl = document.getElementById('poke-roulette-sub');
-  if(frame) frame.classList.add('spinning');
-  if(btn){ btn.disabled = true; btn.textContent = 'Girando…'; }
-  if(subEl) subEl.textContent = 'Girando…';
-
-  const final = POKEMON_LIST[Math.floor(Math.random()*POKEMON_LIST.length)];
-  const totalTicks = 26;
-  let tick = 0;
-
-  function step(){
-    // si el modal se cerró a mitad de la ruleta, cortamos aquí
-    const frameEl = document.getElementById('poke-roulette-frame');
-    if(!frameEl){ pokeRouletteSpinning = false; return; }
-    const img = document.getElementById('poke-roulette-img');
-    const nameEl = document.getElementById('poke-roulette-name');
-    const isLast = tick >= totalTicks - 1;
-    const pick = isLast ? final : POKEMON_LIST[Math.floor(Math.random()*POKEMON_LIST.length)];
-    if(img) img.src = pokeIdSprite(pick.id);
-    if(nameEl) nameEl.textContent = pick.name.replace(/-/g,' ');
-    tick++;
-    if(!isLast){
-      const delay = 40 + Math.pow(tick/totalTicks, 2.2) * 220; // se va frenando, como una ruleta de verdad
-      pokeRouletteTimer = setTimeout(step, delay);
-    } else {
-      finishPokeRoulette(final);
-    }
-  }
-  step();
-}
-function finishPokeRoulette(final){
-  pokeRouletteSpinning = false;
-  pokeRouletteResult = final;
-  playSound('reelStop');
-  const frame = document.getElementById('poke-roulette-frame');
-  const nameEl = document.getElementById('poke-roulette-name');
-  const subEl = document.getElementById('poke-roulette-sub');
-  const btn = document.getElementById('poke-roulette-spin-btn');
-  if(frame) frame.classList.remove('spinning');
-  if(nameEl) nameEl.textContent = final.name.replace(/-/g,' ');
-  if(subEl) subEl.textContent = '¡Ha salido este Pokémon!';
-  if(btn){ btn.disabled = false; btn.textContent = '🎡 Girar de nuevo'; }
-  fireConfetti({count:70});
-}
-
 /* ---- Ver un Pokémon concreto (equipo o caja) y ofertar por él ---- */
 function openPokemonDetail(ownerTrainer, pid){
   const mon = allMonsOf(ownerTrainer).find(m=>m.pid===pid);
@@ -4879,9 +4864,22 @@ function openPokemonDetail(ownerTrainer, pid){
     </div>
     <div class="modal-actions">
       <button class="ghost" onclick="closeModal()">Cerrar</button>
+      <button class="ghost" onclick="toggleManualFainted('${ownerTrainer}','${pid}')">${mon.fainted ? '💚 Marcar como vivo' : '💀 Marcar como debilitado'}</button>
       <button class="primary" onclick="openOfferForPokemon('${ownerTrainer}','${pid}')">🔁 Ofertar por este Pokémon</button>
     </div>
   `);
+}
+
+async function toggleManualFainted(trainer, pid){
+  const set = new Set(manualFainted[trainer]||[]);
+  const mon = allMonsOf(trainer).find(m=>m.pid===pid);
+  if(!mon) return;
+  if(mon.fainted) set.delete(pid); else set.add(pid);
+  manualFainted[trainer] = Array.from(set);
+  closeModal();
+  render();
+  const ok = await storeSet('x:manualFainted:'+trainer, manualFainted[trainer]);
+  if(!ok) queueRetry('manualFainted:'+trainer, ()=>storeSet('x:manualFainted:'+trainer, manualFainted[trainer]));
 }
 
 let wantedPokemonTarget = null; // {trainer, pid, nickname, speciesName, sprite} -- lo que se pide a cambio
