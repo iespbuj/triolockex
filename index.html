@@ -547,6 +547,30 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .pd-label{ font-size:10px; letter-spacing:.5px; text-transform:uppercase; color: var(--silver-dim); }
 .pd-value{ font-size:14px; font-weight:600; color: var(--silver-bright); }
+
+.subtabs{ display:flex; gap:8px; margin-bottom:16px; }
+.subtab-btn{
+  background: var(--panel); border:1px solid var(--border); color: var(--silver-dim);
+  border-radius: 10px; padding: 8px 16px; font-size:13px; font-weight:600; cursor:pointer;
+  font-family: inherit; transition: all .15s ease;
+}
+.subtab-btn.active{ background: var(--accent-dim); border-color: var(--accent); color: var(--silver-bright); }
+.subtab-btn:hover{ border-color: var(--accent-dim); }
+
+.cemetery-grid{
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:12px;
+}
+.tomb{
+  background: linear-gradient(160deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border:1px solid var(--border); border-radius:14px; padding:14px 10px;
+  text-align:center; position:relative;
+}
+.tomb::before{ content:'🪦'; position:absolute; top:8px; right:10px; font-size:14px; opacity:.5; }
+.tomb img{ width:56px; height:56px; filter: grayscale(1) brightness(.85); image-rendering:pixelated; }
+.tomb-name{ font-size:13px; font-weight:700; color: var(--silver-bright); margin-top:2px; }
+.tomb-species{ font-size:10px; color: var(--silver-dim); text-transform:capitalize; }
+.tomb-meta{ font-size:10px; color: var(--silver-dim); margin-top:4px; }
+.tomb-date{ font-size:9px; color: var(--silver-dim); opacity:.6; margin-top:4px; }
 .err-msg{ color: var(--danger); font-size: 12px; margin-top: 6px; min-height: 14px; }
 
 .item-row-add{ display:flex; gap:8px; align-items:flex-end; margin-bottom: 12px; }
@@ -1792,6 +1816,7 @@ let dailyBonusDate = {}; // último día (YYYY-MM-DD) en que cada entrenador rec
 let money = {}, badgesRaw = {}; // sincronizados automáticamente por vidas_watcher.py desde el save
 let locationName = {}; // idem: ubicacion actual en el juego (zona/mapa)
 let collections = {}; // idem: coleccion completa (equipo+cajas) por entrenador, para poder ver/ofertar cualquier Pokémon
+let graveyard = {}; // idem: cementerio (Pokémon caídos) por entrenador
 let boxesOpenFor = null; // que perfil tiene la seccion de cajas desplegada ahora mismo
 function toggleBoxesFor(t){ boxesOpenFor = (boxesOpenFor===t) ? null : t; render(); }
 const DAILY_BONUS_AMOUNT = 10;
@@ -2023,7 +2048,7 @@ async function storeSet(key, val){
 }
 
 async function loadAll(){
-  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult, collectionResults] = await Promise.all([
+  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults] = await Promise.all([
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
@@ -2032,7 +2057,8 @@ async function loadAll(){
     storeGet('x:normas', []),
     storeGet('x:sancion', { offender: null, prize: null }),
     storeGet('x:loteria', { pot: 0, entries: [], history: [] }),
-    Promise.all(TRAINERS.map(t => storeGet('x:collection:'+t, {pids:{}})))
+    Promise.all(TRAINERS.map(t => storeGet('x:collection:'+t, {pids:{}}))),
+    Promise.all(TRAINERS.map(t => storeGet('x:graveyard:'+t, [])))
   ]);
   TRAINERS.forEach((t, i) => {
     hearts[t] = profileResults[i].hearts;
@@ -2053,6 +2079,7 @@ async function loadAll(){
   sancionState = sancionResult;
   loteria = loteriaResult;
   TRAINERS.forEach((t, i) => { collections[t] = collectionResults[i].pids || {}; });
+  TRAINERS.forEach((t, i) => { graveyard[t] = graveyardResults[i] || []; });
   loaded = true;
 }
 async function saveProfile(t){
@@ -2584,12 +2611,22 @@ function renderProfile(app, t){
   `;
 }
 
+let historyTab = 'news'; // 'news' | 'cemetery'
+function setHistoryTab(tab){ historyTab = tab; render(); }
 function renderHistory(app){
+  const tabsHtml = `
+    <div class="subtabs">
+      <button class="subtab-btn ${historyTab==='news'?'active':''}" onclick="setHistoryTab('news')">📰 Novedades</button>
+      <button class="subtab-btn ${historyTab==='cemetery'?'active':''}" onclick="setHistoryTab('cemetery')">🪦 Cementerio</button>
+    </div>
+  `;
+  if(historyTab === 'cemetery') return renderCemeteryTab(app, tabsHtml);
+
   if(history.length === 0){
-    app.innerHTML = '<div class="empty-state">Aún no hay nada en el historial.</div>';
+    app.innerHTML = tabsHtml + '<div class="empty-state">Aún no hay nada en el historial.</div>';
     return;
   }
-  app.innerHTML = `
+  app.innerHTML = tabsHtml + `
     <div class="section-label">Historial</div>
     <div class="history-list">
       ${history.map(e=> `
@@ -2597,6 +2634,29 @@ function renderHistory(app){
           <span class="h-text">${e.text}</span>
           <span class="h-time mono">${fmtTime(e.ts)}</span>
         </div>`).join('')}
+    </div>
+  `;
+}
+function renderCemeteryTab(app, tabsHtml){
+  const all = TRAINERS.flatMap(t => (graveyard[t]||[]).map(g => ({...g, trainer: t})))
+    .sort((a,b) => b.diedAt - a.diedAt);
+  if(all.length === 0){
+    app.innerHTML = tabsHtml + '<div class="empty-state">Todavía no ha caído ninguno. 🙏</div>';
+    return;
+  }
+  app.innerHTML = tabsHtml + `
+    <div class="section-label">🪦 Cementerio (${all.length})</div>
+    <div class="cemetery-grid">
+      ${all.map(g=>`
+        <div class="tomb">
+          <img src="${g.sprite}" alt="${g.speciesName}">
+          <div class="tomb-name">${g.nickname}</div>
+          <div class="tomb-species">${g.speciesName.replace(/-/g,' ')}</div>
+          <div class="tomb-meta">Nv.${g.level} · ${NAMES[g.trainer]}</div>
+          ${g.diedAtLocation ? `<div class="tomb-meta" style="opacity:.75;">📍 ${g.diedAtLocation}</div>` : ''}
+          <div class="tomb-date">${fmtTime(g.diedAt)}</div>
+        </div>
+      `).join('')}
     </div>
   `;
 }
