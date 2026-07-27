@@ -399,6 +399,37 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .trade-count-pill strong{ color: var(--silver-bright); font-weight:600; }
 
+/* ---------- Ruleta Pokémon (trades) ---------- */
+.poke-roulette-wrap{ display:flex; flex-direction:column; align-items:center; gap: 18px; }
+.poke-roulette-frame{
+  position:relative; width: 220px; height: 220px; border-radius:50%;
+  background: radial-gradient(circle at 50% 40%, var(--panel-2) 0%, var(--bg-elev) 75%);
+  border: 3px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  box-shadow: 0 0 0 6px var(--bg-elev), 0 10px 30px rgba(0,0,0,0.4);
+}
+.poke-roulette-frame.spinning{ animation: poke-roulette-glow 0.5s ease-in-out infinite alternate; border-color: var(--accent); }
+@keyframes poke-roulette-glow{
+  from{ box-shadow: 0 0 0 6px var(--bg-elev), 0 0 18px rgba(79,127,255,0.35); }
+  to{ box-shadow: 0 0 0 6px var(--bg-elev), 0 0 34px rgba(79,127,255,0.7); }
+}
+.poke-roulette-pointer{
+  position:absolute; top:-4px; left:50%; transform:translateX(-50%);
+  width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent;
+  border-top: 14px solid var(--gold); z-index:2; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+}
+.poke-roulette-img{
+  width: 150px; height: 150px; object-fit:contain;
+  image-rendering: auto;
+}
+.poke-roulette-frame.spinning .poke-roulette-img{ filter: blur(1.5px); }
+.poke-roulette-name{
+  font-family:'Rajdhani', sans-serif; font-weight:700; font-size:22px; letter-spacing:1.5px;
+  color: var(--silver-bright); text-transform:capitalize; min-height: 28px; text-align:center;
+}
+.poke-roulette-sub{ font-size:12px; color: var(--silver-dim); letter-spacing:1px; text-align:center; min-height:16px; }
+
 .trade-card{
   background: linear-gradient(165deg, var(--panel) 0%, var(--bg-elev) 100%);
   border: 1px solid var(--border);
@@ -1991,12 +2022,17 @@ let currentTrainer = null;
 let loaded = false;
 
 let POKEMON_NAMES = [];
+let POKEMON_LIST = []; // [{name, id}] — para la ruleta de trades (necesita sprite por id, sin fetch por bicho)
 let ITEM_NAMES = [];
 async function loadNameLists(){
   try{
     const r1 = await fetch('https://pokeapi.co/api/v2/pokemon?limit=20000');
     const d1 = await r1.json();
     POKEMON_NAMES = d1.results.map(p=>p.name);
+    POKEMON_LIST = d1.results.map(p=>{
+      const m = p.url.match(/\/pokemon\/(\d+)\//);
+      return { name: p.name, id: m ? parseInt(m[1],10) : null };
+    }).filter(p=>p.id!=null);
   }catch(e){ console.error('failed to load pokemon list', e); }
   try{
     const r2 = await fetch('https://pokeapi.co/api/v2/item?limit=3000');
@@ -3657,6 +3693,7 @@ function renderTrade(app){
   app.innerHTML = `
     <div class="trade-toolbar">
       <button class="primary" onclick="openNewOffer()">+ Nueva oferta</button>
+      <button class="ghost" onclick="openPokeRoulette()">🎡 Ruleta Pokémon</button>
       <div class="trade-count-pill"><strong>${tradesActive.length}</strong> activa${tradesActive.length===1?'':'s'} · <strong>${tradesHistory.length}</strong> cerrada${tradesHistory.length===1?'':'s'}</div>
     </div>
 
@@ -4624,6 +4661,9 @@ async function confirmImportTeam(t){
 }
 
 /* ---------------- PokeAPI helpers ---------------- */
+function pokeIdSprite(id){
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+}
 async function fetchPokemonSprite(name){
   const slug = name.toLowerCase().trim().replace(/\s+/g,'-');
   const res = await fetch('https://pokeapi.co/api/v2/pokemon/'+slug);
@@ -4721,6 +4761,87 @@ function openNewOffer(){
 }
 function openCounterOffer(offerId){
   openNewGenericOffer('counter', offerId);
+}
+
+/* ---- Ruleta Pokémon: elige al azar entre TODOS los Pokémon del juego ---- */
+let pokeRouletteSpinning = false;
+let pokeRouletteResult = null;
+let pokeRouletteTimer = null;
+
+function openPokeRoulette(){
+  pokeRouletteResult = null;
+  renderPokeRouletteModal();
+}
+function renderPokeRouletteModal(){
+  const ready = POKEMON_LIST.length > 0;
+  const shown = pokeRouletteResult || (ready ? POKEMON_LIST[Math.floor(Math.random()*POKEMON_LIST.length)] : null);
+  openModal(`
+    <h3>🎡 Ruleta Pokémon</h3>
+    ${!ready ? `<div class="empty-state">Cargando la lista de Pokémon… inténtalo de nuevo en unos segundos.</div>` : `
+    <div class="poke-roulette-wrap">
+      <div class="poke-roulette-frame" id="poke-roulette-frame">
+        <div class="poke-roulette-pointer"></div>
+        <img class="poke-roulette-img" id="poke-roulette-img" src="${pokeIdSprite(shown.id)}" onerror="this.style.opacity=0">
+      </div>
+      <div class="poke-roulette-name" id="poke-roulette-name">${pokeRouletteResult ? pokeRouletteResult.name.replace(/-/g,' ') : '¿Quién saldrá?'}</div>
+      <div class="poke-roulette-sub" id="poke-roulette-sub">${pokeRouletteResult ? '¡Ha salido este Pokémon!' : `${POKEMON_LIST.length} Pokémon posibles`}</div>
+    </div>
+    `}
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Cerrar</button>
+      ${ready ? `<button class="primary" id="poke-roulette-spin-btn" onclick="spinPokeRoulette()">${pokeRouletteResult ? '🎡 Girar de nuevo' : '🎡 Girar'}</button>` : ''}
+    </div>
+  `);
+}
+function spinPokeRoulette(){
+  if(pokeRouletteSpinning || POKEMON_LIST.length===0) return;
+  pokeRouletteSpinning = true;
+  pokeRouletteResult = null;
+  playSound('spin');
+  const frame = document.getElementById('poke-roulette-frame');
+  const btn = document.getElementById('poke-roulette-spin-btn');
+  const subEl = document.getElementById('poke-roulette-sub');
+  if(frame) frame.classList.add('spinning');
+  if(btn){ btn.disabled = true; btn.textContent = 'Girando…'; }
+  if(subEl) subEl.textContent = 'Girando…';
+
+  const final = POKEMON_LIST[Math.floor(Math.random()*POKEMON_LIST.length)];
+  const totalTicks = 26;
+  let tick = 0;
+
+  function step(){
+    // si el modal se cerró a mitad de la ruleta, cortamos aquí
+    const frameEl = document.getElementById('poke-roulette-frame');
+    if(!frameEl){ pokeRouletteSpinning = false; return; }
+    const img = document.getElementById('poke-roulette-img');
+    const nameEl = document.getElementById('poke-roulette-name');
+    const isLast = tick >= totalTicks - 1;
+    const pick = isLast ? final : POKEMON_LIST[Math.floor(Math.random()*POKEMON_LIST.length)];
+    if(img) img.src = pokeIdSprite(pick.id);
+    if(nameEl) nameEl.textContent = pick.name.replace(/-/g,' ');
+    tick++;
+    if(!isLast){
+      const delay = 40 + Math.pow(tick/totalTicks, 2.2) * 220; // se va frenando, como una ruleta de verdad
+      pokeRouletteTimer = setTimeout(step, delay);
+    } else {
+      finishPokeRoulette(final);
+    }
+  }
+  step();
+}
+function finishPokeRoulette(final){
+  pokeRouletteSpinning = false;
+  pokeRouletteResult = final;
+  playSound('reelStop');
+  const frame = document.getElementById('poke-roulette-frame');
+  const nameEl = document.getElementById('poke-roulette-name');
+  const subEl = document.getElementById('poke-roulette-sub');
+  const btn = document.getElementById('poke-roulette-spin-btn');
+  if(frame) frame.classList.remove('spinning');
+  if(nameEl) nameEl.textContent = final.name.replace(/-/g,' ');
+  if(subEl) subEl.textContent = '¡Ha salido este Pokémon!';
+  if(btn){ btn.disabled = false; btn.textContent = '🎡 Girar de nuevo'; }
+  fireConfetti({count:70});
 }
 
 /* ---- Ver un Pokémon concreto (equipo o caja) y ofertar por él ---- */
