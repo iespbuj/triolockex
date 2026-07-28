@@ -2403,7 +2403,7 @@ function allMonsOf(t){
     pid: p.pid, nickname: p.nickname, speciesName: p.species, sprite: p.sprite,
     level: p.level, metLocationName: p.metLocationName || null, metLevel: p.metLevel,
     fainted: !!p.fainted || manualSet.has(p.pid), inTeam: true,
-    abilityName: p.abilityName || null,
+    abilityName: p.abilityName || null, shiny: !!p.shiny,
   }));
   const teamPids = new Set(team.map(m=>m.pid));
   const boxMons = Object.entries(collections[t]||{})
@@ -2412,7 +2412,7 @@ function allMonsOf(t){
       pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
       level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
       fainted: !!m.fainted || manualSet.has(pid), inTeam: false, box: m.box || null, boxName: m.boxName || null,
-      abilityName: m.abilityName || null,
+      abilityName: m.abilityName || null, shiny: !!m.shiny,
     }));
   return [...team, ...boxMons];
 }
@@ -2754,13 +2754,43 @@ function renderPokedex(app){
         const seen = !!seenSet;
         const who = seen ? Array.from(seenSet).map(t=>NAMES[t]).join(', ') : '';
         return `
-        <div class="dex-slot ${seen ? 'seen' : 'unseen'}" title="${seen ? `#${id} ${SPECIES_NAMES[id]} · ${who}` : `#${id} ???`}">
+        <div class="dex-slot ${seen ? 'seen' : 'unseen'}" ${seen ? `onclick="openDexSpeciesDetail(${id})" style="cursor:pointer;"` : ''} title="${seen ? `#${id} ${SPECIES_NAMES[id]} · ${who}` : `#${id} ???`}">
           <img src="${pokedexSpriteUrl(id)}" loading="lazy" alt="${seen ? SPECIES_NAMES[id] : '?'}">
           <span class="dex-num">#${id}</span>
         </div>`;
       }).join('')}
     </div>
   `;
+}
+function openDexSpeciesDetail(id){
+  const name = SPECIES_NAMES[id] || `#${id}`;
+  const owners = TRAINERS.map(t => ({
+    t, mons: allMonsOf(t).filter(m => (m.speciesName||'').toLowerCase() === name.toLowerCase())
+  })).filter(o => o.mons.length > 0);
+  openModal(`
+    <div class="poke-detail-hero" style="margin-bottom:14px;">
+      <img src="${pokedexSpriteUrl(id)}" alt="${name}">
+      <div class="poke-detail-name">#${id} ${name}</div>
+    </div>
+    ${owners.map(o=>`
+      <div class="box-group">
+        <div class="box-group-label">${NAMES[o.t]} <span class="box-group-count">(${o.mons.length})</span></div>
+        <div class="team-grid" style="grid-template-columns:repeat(auto-fill, minmax(84px, 1fr));">
+          ${o.mons.map(m=>`
+            <div class="poke-slot${m.fainted?' fainted':''}" onclick="closeModal();openPokemonDetail('${o.t}','${m.pid}')" style="cursor:pointer;padding:8px 4px;">
+              ${m.level!=null ? `<div class="poke-level">Nv.${m.level}</div>` : ''}
+              <img src="${m.sprite}" style="width:56px;height:56px;">
+              <div class="poke-nick" style="font-size:11px;">${m.nickname}${m.shiny?' ✨':''}</div>
+              ${m.fainted ? `<div class="poke-fainted-tag">💀</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Cerrar</button>
+    </div>
+  `);
 }
 
 function renderNormaText(text){
