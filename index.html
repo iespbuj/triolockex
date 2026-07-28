@@ -578,6 +578,19 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
   color: var(--silver-bright); margin-bottom:8px;
 }
 .box-group-count{ font-size:11px; font-weight:500; color: var(--silver-dim); }
+
+.pokedex-grid{
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap:8px;
+}
+.dex-slot{
+  position:relative; background: var(--panel); border:1px solid var(--border);
+  border-radius:10px; padding:8px 4px 6px; text-align:center;
+}
+.dex-slot img{ width:48px; height:48px; image-rendering:pixelated; }
+.dex-slot.unseen img{ filter: grayscale(1) brightness(0) opacity(0.5); }
+.dex-slot.unseen{ opacity:.55; }
+.dex-slot.seen{ border-color: var(--accent-dim); background: linear-gradient(160deg, var(--panel) 0%, var(--bg-elev) 100%); }
+.dex-num{ display:block; font-size:9px; color: var(--silver-dim); margin-top:2px; }
 .err-msg{ color: var(--danger); font-size: 12px; margin-top: 6px; min-height: 14px; }
 
 .item-row-add{ display:flex; gap:8px; align-items:flex-end; margin-bottom: 12px; }
@@ -1434,6 +1447,7 @@ footer{
     <button class="nav-btn" data-nav="duel" onclick="go('duel')">Temporizador</button>
     <button class="nav-btn" data-nav="normas" onclick="go('normas')">Normas</button>
     <button class="nav-btn" data-nav="casino" onclick="go('casino')">🎰 Casino</button>
+    <button class="nav-btn" data-nav="pokedex" onclick="go('pokedex')">📖 Pokédex</button>
   </nav>
 </header>
 
@@ -2351,6 +2365,7 @@ function render(){
   if(view === 'duel') return renderDuel(app);
   if(view === 'normas') return renderNormas(app);
   if(view === 'casino') return renderCasino(app);
+  if(view === 'pokedex') return renderPokedex(app);
 }
 
 // Combates ganados = veces que ha sido campeón final de un torneo (duelHistory).
@@ -2708,6 +2723,42 @@ function renderCemeteryTab(app, tabsHtml){
           <div class="tomb-date">${fmtTime(g.diedAt)}</div>
         </div>
       `).join('')}
+    </div>
+  `;
+}
+
+function pokedexSpriteUrl(dexId){
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${dexId}.png`;
+}
+function buildSeenPokedex(){
+  const nameToId = {};
+  Object.entries(SPECIES_NAMES).forEach(([id, name]) => { nameToId[name.toLowerCase()] = +id; });
+  const seenBy = {}; // dexId -> Set(trainers)
+  TRAINERS.forEach(t=>{
+    allMonsOf(t).forEach(m=>{
+      const id = nameToId[(m.speciesName||'').toLowerCase()];
+      if(!id) return;
+      (seenBy[id] = seenBy[id] || new Set()).add(t);
+    });
+  });
+  return seenBy;
+}
+function renderPokedex(app){
+  const seenBy = buildSeenPokedex();
+  const totalSeen = Object.keys(seenBy).length;
+  app.innerHTML = `
+    <div class="section-label">📖 Pokédex compartido — ${totalSeen}/721 vistos entre los tres</div>
+    <div class="pokedex-grid">
+      ${Array.from({length:721}, (_,i)=>i+1).map(id=>{
+        const seenSet = seenBy[id];
+        const seen = !!seenSet;
+        const who = seen ? Array.from(seenSet).map(t=>NAMES[t]).join(', ') : '';
+        return `
+        <div class="dex-slot ${seen ? 'seen' : 'unseen'}" title="${seen ? `#${id} ${SPECIES_NAMES[id]} · ${who}` : `#${id} ???`}">
+          <img src="${pokedexSpriteUrl(id)}" loading="lazy" alt="${seen ? SPECIES_NAMES[id] : '?'}">
+          <span class="dex-num">#${id}</span>
+        </div>`;
+      }).join('')}
     </div>
   `;
 }
@@ -4889,16 +4940,16 @@ async function toggleManualFainted(trainer, pid){
 
 const ABILITY_REVEAL_COST = 20;
 function openRevealAbility(targetTrainer){
-  const pool = allMonsOf(targetTrainer);
+  const pool = allMonsOf(targetTrainer).filter(m=>m.inTeam);
   if(pool.length === 0){
-    openModal(`<h3>🔓 Revelar habilidad</h3><div class="empty-state">${NAMES[targetTrainer]} no tiene ningún Pokémon todavía.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Cerrar</button></div>`);
+    openModal(`<h3>🔓 Revelar habilidad</h3><div class="empty-state">${NAMES[targetTrainer]} no tiene ningún Pokémon en el equipo activo ahora mismo.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Cerrar</button></div>`);
     return;
   }
   const payers = TRAINERS.filter(t=>t!==targetTrainer);
   openModal(`
     <h3>🔓 Revelar habilidad de un Pokémon al azar</h3>
     <div style="font-size:12px;color:var(--silver-dim);margin-bottom:12px;">
-      Se elige un Pokémon aleatorio de ${NAMES[targetTrainer]} (equipo + cajas) y se revela su habilidad real. Cuesta ${ABILITY_REVEAL_COST} tickets, y no puedes elegir cuál sale.
+      Se elige un Pokémon aleatorio del equipo activo de ${NAMES[targetTrainer]} (no de sus cajas) y se revela su habilidad real. Cuesta ${ABILITY_REVEAL_COST} tickets, y no puedes elegir cuál sale.
     </div>
     <div class="field">
       <label>¿Quién paga?</label>
@@ -4920,7 +4971,7 @@ async function confirmRevealAbility(targetTrainer){
     err.textContent = `${NAMES[payer]} no tiene suficientes tickets.`;
     return;
   }
-  const pool = allMonsOf(targetTrainer);
+  const pool = allMonsOf(targetTrainer).filter(m=>m.inTeam);
   const mon = pool[Math.floor(Math.random()*pool.length)];
   await addTickets(payer, -ABILITY_REVEAL_COST, `Revelar habilidad (Pokémon de ${NAMES[targetTrainer]})`);
   pushHistory(`🔍 ${NAMES[payer]} pagó ${ABILITY_REVEAL_COST} tickets y descubrió que el ${mon.nickname} de ${NAMES[targetTrainer]} tiene ${mon.abilityName || 'una habilidad desconocida'}`);
