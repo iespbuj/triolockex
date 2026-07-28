@@ -2388,6 +2388,7 @@ function allMonsOf(t){
     pid: p.pid, nickname: p.nickname, speciesName: p.species, sprite: p.sprite,
     level: p.level, metLocationName: p.metLocationName || null, metLevel: p.metLevel,
     fainted: !!p.fainted || manualSet.has(p.pid), inTeam: true,
+    abilityName: p.abilityName || null,
   }));
   const teamPids = new Set(team.map(m=>m.pid));
   const boxMons = Object.entries(collections[t]||{})
@@ -2396,6 +2397,7 @@ function allMonsOf(t){
       pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
       level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
       fainted: !!m.fainted || manualSet.has(pid), inTeam: false, box: m.box || null, boxName: m.boxName || null,
+      abilityName: m.abilityName || null,
     }));
   return [...team, ...boxMons];
 }
@@ -2598,7 +2600,10 @@ function renderProfile(app, t){
 
     <div class="team-section-header">
       <div class="section-label">Equipo principal</div>
-      <button class="ghost" onclick="openImportSave('${t}')">📥 Importar desde save</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="ghost" onclick="openImportSave('${t}')">📥 Importar desde save</button>
+        <button class="ghost" onclick="openRevealAbility('${t}')">🔓 Revelar habilidad (20 🎟️)</button>
+      </div>
     </div>
     <div class="team-grid">
       ${Array.from({length:6}).map((_,i)=>{
@@ -4880,6 +4885,58 @@ async function toggleManualFainted(trainer, pid){
   render();
   const ok = await storeSet('x:manualFainted:'+trainer, manualFainted[trainer]);
   if(!ok) queueRetry('manualFainted:'+trainer, ()=>storeSet('x:manualFainted:'+trainer, manualFainted[trainer]));
+}
+
+const ABILITY_REVEAL_COST = 20;
+function openRevealAbility(targetTrainer){
+  const pool = allMonsOf(targetTrainer);
+  if(pool.length === 0){
+    openModal(`<h3>🔓 Revelar habilidad</h3><div class="empty-state">${NAMES[targetTrainer]} no tiene ningún Pokémon todavía.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Cerrar</button></div>`);
+    return;
+  }
+  const payers = TRAINERS.filter(t=>t!==targetTrainer);
+  openModal(`
+    <h3>🔓 Revelar habilidad de un Pokémon al azar</h3>
+    <div style="font-size:12px;color:var(--silver-dim);margin-bottom:12px;">
+      Se elige un Pokémon aleatorio de ${NAMES[targetTrainer]} (equipo + cajas) y se revela su habilidad real. Cuesta ${ABILITY_REVEAL_COST} tickets, y no puedes elegir cuál sale.
+    </div>
+    <div class="field">
+      <label>¿Quién paga?</label>
+      <select id="reveal-payer-select">
+        ${payers.map(t=>`<option value="${t}">${NAMES[t]} (${tickets[t]||0} 🎟️)</option>`).join('')}
+      </select>
+    </div>
+    <div class="err-msg" id="reveal-err"></div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Cancelar</button>
+      <button class="primary" onclick="confirmRevealAbility('${targetTrainer}')">Pagar y revelar</button>
+    </div>
+  `);
+}
+async function confirmRevealAbility(targetTrainer){
+  const payer = document.getElementById('reveal-payer-select').value;
+  const err = document.getElementById('reveal-err');
+  if((tickets[payer]||0) < ABILITY_REVEAL_COST){
+    err.textContent = `${NAMES[payer]} no tiene suficientes tickets.`;
+    return;
+  }
+  const pool = allMonsOf(targetTrainer);
+  const mon = pool[Math.floor(Math.random()*pool.length)];
+  await addTickets(payer, -ABILITY_REVEAL_COST, `Revelar habilidad (Pokémon de ${NAMES[targetTrainer]})`);
+  pushHistory(`🔍 ${NAMES[payer]} pagó ${ABILITY_REVEAL_COST} tickets y descubrió que el ${mon.nickname} de ${NAMES[targetTrainer]} tiene ${mon.abilityName || 'una habilidad desconocida'}`);
+  openModal(`
+    <h3>🔓 ¡Habilidad revelada!</h3>
+    <div style="text-align:center;margin:12px 0;">
+      <img src="${mon.sprite}" style="width:96px;height:96px;">
+      <div style="font-weight:700;font-size:16px;color:var(--silver-bright);">${mon.nickname}</div>
+      <div style="font-size:12px;color:var(--silver-dim);text-transform:capitalize;">${mon.speciesName.replace(/-/g,' ')} · de ${NAMES[targetTrainer]}</div>
+      <div class="location-pill" style="font-size:13px;padding:6px 16px;margin-top:10px;">✨ ${mon.abilityName || 'Desconocida'}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="primary" onclick="closeModal()">Vale</button>
+    </div>
+  `);
+  render();
 }
 
 let wantedPokemonTarget = null; // {trainer, pid, nickname, speciesName, sprite} -- lo que se pide a cambio
