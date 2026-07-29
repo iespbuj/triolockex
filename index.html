@@ -2265,6 +2265,9 @@ async function storeSet(key, val){
   return false;
 }
 
+let profileSaveInFlight = {}; // contador por entrenador: >0 mientras hay un saveProfile() en curso para el
+TRAINERS.forEach(t => profileSaveInFlight[t] = 0);
+
 async function loadAll(){
   const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
@@ -2280,6 +2283,13 @@ async function loadAll(){
     Promise.all(TRAINERS.map(t => storeGet('x:manualFainted:'+t, [])))
   ]);
   TRAINERS.forEach((t, i) => {
+    if(profileSaveInFlight[t] > 0){
+      // hay un cambio tuyo (apuesta, premio, vida...) guardandose ahora mismo para
+      // este entrenador: NO lo piso con lo que venga del servidor, que puede ser
+      // de un instante justo antes de ese cambio. Se aplicará solo en el próximo
+      // refresco, cuando ya no haya nada en vuelo.
+      return;
+    }
     hearts[t] = profileResults[i].hearts;
     teams[t] = profileResults[i].team;
     tickets[t] = profileResults[i].tickets || 0;
@@ -2303,7 +2313,12 @@ async function loadAll(){
   loaded = true;
 }
 async function saveProfile(t){
-  return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, money: money[t]||0, badges: badgesRaw[t]||0, locationName: locationName[t]||null });
+  profileSaveInFlight[t] = (profileSaveInFlight[t]||0) + 1;
+  try{
+    return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, money: money[t]||0, badges: badgesRaw[t]||0, locationName: locationName[t]||null });
+  } finally {
+    profileSaveInFlight[t] = Math.max((profileSaveInFlight[t]||1) - 1, 0);
+  }
 }
 
 const ROULETTE_LIFE_RISK = 0.05; // 5% de posibilidades de perder 1 vida automáticamente al girar una ruleta del casino
