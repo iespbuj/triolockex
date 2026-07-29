@@ -2261,11 +2261,12 @@ async function saveProfile(t){
 }
 
 const ROULETTE_LIFE_RISK = 0.05; // 5% de posibilidades de perder 1 vida automáticamente al girar una ruleta del casino
-async function rouletteLifeRiskCheck(t){
+async function rouletteLifeRiskCheck(t, sourceLabel){
   if(Math.random() >= ROULETTE_LIFE_RISK) return;
+  const where = sourceLabel || 'en el casino';
   hearts[t] = Math.max(hearts[t]-1, -1);
-  pushHistory(`🎲💔 ${NAMES[t]} tuvo mala suerte en la ruleta y pierde 1 vida automáticamente (${hearts[t]}/20)`);
-  toast(`💔 ¡Mala suerte! ${NAMES[t]} pierde una vida en la ruleta (${hearts[t]}/20).`);
+  pushHistory(`🎲💔 ${NAMES[t]} tuvo mala suerte ${where} y pierde 1 vida automáticamente (${hearts[t]}/20)`);
+  toast(`💔 ¡Mala suerte! ${NAMES[t]} pierde una vida ${where} (${hearts[t]}/20).`);
   playSound('heartbreak');
   render();
   const ok = await saveProfile(t);
@@ -3495,7 +3496,7 @@ function spinJackpotWheel(){
     playSound('bigwin');
     fireConfetti({ count: 200 });
     await addPendingPrize(casinoPlayer, `Legendario: ${won}`, 'Jackpot tragaperras · ' + machine.name);
-    await rouletteLifeRiskCheck(casinoPlayer);
+    await rouletteLifeRiskCheck(casinoPlayer, 'en el jackpot de la tragaperras');
     if(slotJackpotQueue > 0){
       // quedan mas jackpots de la misma tirada multiple: se gira otra vez
       slotJackpotQueue -= 1;
@@ -3730,7 +3731,7 @@ async function spinRoulette(){
     }
     if(wheelEl) wheelEl.classList.remove('spinning-disc');
     render();
-    await rouletteLifeRiskCheck(casinoPlayer);
+    await rouletteLifeRiskCheck(casinoPlayer, 'en la ruleta');
   }, 3000);
 }
 /* ================= BLACKJACK ================= */
@@ -3837,6 +3838,7 @@ async function bjResolveNatural(){
     playSound('bigwin');
   }
   bjState.phase = 'result';
+  await rouletteLifeRiskCheck(casinoPlayer, 'en el Blackjack');
 }
 async function bjHit(){
   if(bjDealing || bjState.phase!=='playing') return;
@@ -3851,6 +3853,7 @@ async function bjHit(){
     bjState.resultClass = 'lose';
     bjState.phase = 'result';
     playSound('lose');
+    await rouletteLifeRiskCheck(casinoPlayer, 'en el Blackjack');
   }
   bjDealing = false;
   render();
@@ -3877,6 +3880,7 @@ async function bjDouble(){
     bjState.resultClass = 'lose';
     bjState.phase = 'result';
     playSound('lose');
+    await rouletteLifeRiskCheck(casinoPlayer, 'en el Blackjack');
   } else {
     await bjPlayDealer();
   }
@@ -3918,7 +3922,7 @@ async function bjPlayDealer(){
     playSound('coin');
   }
   bjState.phase = 'result';
-  await rouletteLifeRiskCheck(casinoPlayer);
+  await rouletteLifeRiskCheck(casinoPlayer, 'en el Blackjack');
 }
 function bjNewRound(){
   casinoModeLine = pickLine(BLACKJACK_LINES);
@@ -4025,7 +4029,7 @@ async function nineBet(choice){
   nineState.phase = 'result';
   nineDealing = false;
   render();
-  await rouletteLifeRiskCheck(casinoPlayer);
+  await rouletteLifeRiskCheck(casinoPlayer, 'en el 9');
 }
 
 function renderLoteriaTab(){
@@ -4180,7 +4184,7 @@ async function drawLoteria(){
     fireConfetti({ count: 200 });
     await addTickets(winner, amount, 'Premio de la lotería');
     render();
-    await rouletteLifeRiskCheck(casinoPlayer);
+    await rouletteLifeRiskCheck(casinoPlayer, 'en la lotería');
     const ok = await saveLoteria();
     if(!ok) queueRetry('loteria', saveLoteria);
   }, 4600);
