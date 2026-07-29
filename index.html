@@ -1337,7 +1337,88 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 @keyframes chipPop{ 0%{ transform: scale(0); } 70%{ transform: scale(1.15); } 100%{ transform: scale(1); } }
 
+/* ---------- Blackjack & Nueve (baccarat) ---------- */
+.card-table{
+  display:flex; flex-direction:column; align-items:center; gap: 10px;
+  max-width: 460px; margin: 0 auto;
+}
+.card-row-block{
+  width:100%; background: var(--panel); border:1px solid var(--border); border-radius:16px;
+  padding: 14px 12px; text-align:center;
+}
+.card-row-block.dealer-block{ border-color: var(--danger-dim); }
+.card-row-block.player-block{ border-color: var(--accent-dim); }
+.card-row-label{
+  font-family:'Rajdhani',sans-serif; font-weight:800; letter-spacing:1.5px; font-size:12px;
+  text-transform:uppercase; color: var(--silver-dim); margin-bottom: 8px;
+}
+.card-row-block.dealer-block .card-row-label{ color: var(--danger); }
+.card-row-block.player-block .card-row-label{ color: var(--accent); }
+.card-row-value{
+  font-family:'JetBrains Mono', monospace; font-size: 13px; color: var(--silver-bright);
+  margin-left: 8px; font-weight: 600;
+}
+.card-hand{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; min-height: 84px; align-items:center; }
+.playcard{
+  width: 54px; height: 78px; border-radius: 8px;
+  background: linear-gradient(160deg, #fdfdfd, #e7e9f0);
+  border: 1px solid #b9bfd4;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 18px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+  opacity:0; transform: translateY(-14px) rotate(-4deg);
+  animation: cardDeal .35s cubic-bezier(.2,.85,.3,1) forwards;
+  color:#1c1e26;
+}
+.playcard.red{ color: var(--roulette-red); }
+.playcard .pc-suit{ font-size: 20px; margin-top:2px; }
+.playcard.back{
+  background: repeating-linear-gradient(135deg, var(--accent-dim), var(--accent-dim) 6px, #1a2444 6px, #1a2444 12px);
+  border-color: var(--accent);
+  color: transparent;
+}
+.playcard.back::after{ content:"?"; color: rgba(255,255,255,0.55); font-size:22px; }
+@keyframes cardDeal{ to{ opacity:1; transform: translateY(0) rotate(0deg); } }
 
+.table-hint{ text-align:center; font-size: 12px; color: var(--silver-dim); margin: 4px 0 2px; min-height: 16px; }
+.table-result{
+  text-align:center; font-family:'Rajdhani',sans-serif; font-weight:800; letter-spacing:1px;
+  font-size: 16px; padding: 8px; border-radius: 10px; margin: 2px 0;
+}
+.table-result.win{ color: var(--neon-green); background: rgba(77,255,176,0.08); }
+.table-result.lose{ color: var(--danger); background: rgba(224,67,95,0.08); }
+.table-result.push{ color: var(--neon-yellow); background: rgba(255,225,79,0.08); }
+
+.bj-action-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top: 10px; }
+.bj-action-row button{ min-width: 96px; }
+
+.bet-input-row{ display:flex; gap:8px; justify-content:center; align-items:center; margin-top:10px; flex-wrap:wrap; }
+.bet-input-row input[type=number]{
+  width: 90px; background: var(--panel-2); border:1px solid var(--border); border-radius:8px;
+  padding: 8px 10px; color: var(--silver-bright); font-family:'JetBrains Mono', monospace; font-size:14px; text-align:center;
+}
+
+.nine-choice-row{ display:flex; gap: 10px; justify-content:center; flex-wrap:wrap; margin-top: 10px; }
+.nine-choice-btn{
+  flex: 1 1 110px; max-width: 140px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 8px; cursor:pointer; text-align:center; transition: all .15s ease;
+  font-family:'Rajdhani',sans-serif; color: var(--silver-bright);
+}
+.nine-choice-btn:hover{ border-color: var(--neon-cyan); transform: translateY(-2px); }
+.nine-choice-btn .nc-title{ font-weight:800; letter-spacing:1px; font-size:14px; text-transform:uppercase; }
+.nine-choice-btn .nc-mult{ font-size: 11px; color: var(--silver-dim); margin-top:2px; }
+.nine-choice-btn.nc-player{ border-color: var(--accent-dim); }
+.nine-choice-btn.nc-tie{ border-color: var(--gold); }
+.nine-choice-btn.nc-banker{ border-color: var(--danger-dim); }
+.nine-choice-btn:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
+
+.hall-card.g-blackjack .hall-card-border{ background-image: linear-gradient(120deg, #4dffb0, var(--accent), #4dffb0); }
+.hall-card.g-blackjack .hall-card-icon{ filter: drop-shadow(0 0 18px #4dffb0); }
+.hall-card.g-blackjack .hall-card-bulbs .slot-bulb{ background: #4dffb0; box-shadow: 0 0 6px #4dffb0; }
+.hall-card.g-nueve .hall-card-border{ background-image: linear-gradient(120deg, var(--gold), var(--neon-pink), var(--gold)); }
+.hall-card.g-nueve .hall-card-icon{ filter: drop-shadow(0 0 18px var(--gold)); }
+.hall-card.g-nueve .hall-card-bulbs .slot-bulb{ background: var(--gold); box-shadow: 0 0 6px var(--gold); }
 
 /* Lotería */
 .loteria-wrap{ display:flex; flex-direction:column; align-items:center; gap: 22px; }
@@ -1994,6 +2075,63 @@ let rouletteBallAngle = 0; // ángulo de reposo de la bolita (persistido; solo c
 let rouletteChipValue = 5; // valor de la ficha que se coloca al pulsar un número o color
 const ROULETTE_CHIP_VALUES = [1, 5, 10, 25, 50];
 let rouletteBets = []; // { id, type:'number'|'color', value, amount } — se pueden combinar varias a la vez
+
+/* ---------------- BLACKJACK ---------------- */
+const CARD_SUITS = [
+  { s:'♠', color:'black' }, { s:'♣', color:'black' },
+  { s:'♥', color:'red' },   { s:'♦', color:'red' },
+];
+const CARD_RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+function drawCard(){
+  const suit = CARD_SUITS[Math.floor(Math.random()*4)];
+  const rank = CARD_RANKS[Math.floor(Math.random()*13)];
+  return { rank, suit: suit.s, color: suit.color };
+}
+function bjCardValue(rank){
+  if(rank==='A') return 11;
+  if(rank==='J'||rank==='Q'||rank==='K') return 10;
+  return parseInt(rank,10);
+}
+function bjHandValue(cards){
+  let total = 0, aces = 0;
+  cards.forEach(c=>{ total += bjCardValue(c.rank); if(c.rank==='A') aces++; });
+  while(total > 21 && aces > 0){ total -= 10; aces--; }
+  return total;
+}
+function nineCardValue(rank){
+  if(rank==='A') return 1;
+  if(rank==='J'||rank==='Q'||rank==='K'||rank==='10') return 0;
+  return parseInt(rank,10);
+}
+function nineHandValue(cards){
+  return cards.reduce((sum,c)=>sum+nineCardValue(c.rank), 0) % 10;
+}
+const BJ_CHIP_VALUES = [1, 5, 10, 25, 50];
+let bjChipValue = 5;
+let bjBetAmount = 0;
+let bjState = { phase:'bet', playerCards:[], dealerCards:[], hideDealer:true, resultText:'', resultClass:'' };
+let bjDealing = false; // true mientras hay cartas repartiéndose / crupier jugando, para pausar el refresco
+
+const BLACKJACK_LINES = [
+  'Cartas boca abajo, corazón en la mano.',
+  '21 o nada. Bueno, o nada de todos modos.',
+  'A ver quién cuenta mejor las cartas, tú o yo.',
+  'Plántate cuando el miedo te lo pida, no antes.',
+  'Doblar es de valientes... o de insensatos.',
+];
+const NINE_LINES = [
+  '¿Jugador, crupier o empate? Elige con el corazón.',
+  'El nueve nunca miente. Bueno, casi nunca.',
+  'Dos cartas, un número mágico: el nueve.',
+  'La suerte del punto más cercano a nueve, hoy para ti.',
+];
+
+/* ---------------- NUEVE (mini punto/banca) ---------------- */
+const NINE_CHIP_VALUES = [1, 5, 10, 25, 50];
+let nineChipValue = 5;
+let nineBetAmount = 0;
+let nineState = { phase:'bet', playerCards:[], bankerCards:[], choice:null, resultText:'', resultClass:'' };
+let nineDealing = false;
 
 const LOTERIA_TICKET_COST = 10;
 let loteria = { pot: 0, entries: [], history: [] }; // entries: [{id, trainer, ts}]
@@ -2897,6 +3035,26 @@ function renderCasinoFloor(){
             </div>
           </div>
         </div>
+        <div class="hall-card g-blackjack" onclick="openCasinoZone('blackjack')">
+          <div class="hall-card-border">
+            <div class="hall-card-inner">
+              <div class="hall-card-icon">🂡</div>
+              <div class="hall-card-title">Blackjack</div>
+              <div class="hall-card-sub">21 contra el crupier</div>
+              <div class="hall-card-bulbs">${Array.from({length:5}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
+            </div>
+          </div>
+        </div>
+        <div class="hall-card g-nueve" onclick="openCasinoZone('nueve')">
+          <div class="hall-card-border">
+            <div class="hall-card-inner">
+              <div class="hall-card-icon">9️⃣</div>
+              <div class="hall-card-title">El Nueve</div>
+              <div class="hall-card-sub">Jugador · Empate · Crupier</div>
+              <div class="hall-card-bulbs">${Array.from({length:5}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="casino-floor-hint">Elige una zona para entrar</div>
@@ -2908,7 +3066,11 @@ function openCasinoZone(tab){
   casinoFloor = false;
   casinoMachine = null;
   slotJackpotMachine = null;
-  casinoModeLine = tab==='slots' ? pickLine(SLOT_PICKER_LINES) : tab==='roulette' ? pickLine(ROULETTE_LINES) : pickLine(LOTERIA_LINES);
+  if(tab==='slots') casinoModeLine = pickLine(SLOT_PICKER_LINES);
+  else if(tab==='roulette') casinoModeLine = pickLine(ROULETTE_LINES);
+  else if(tab==='loteria') casinoModeLine = pickLine(LOTERIA_LINES);
+  else if(tab==='blackjack'){ casinoModeLine = pickLine(BLACKJACK_LINES); bjState = { phase:'bet', playerCards:[], dealerCards:[], hideDealer:true, resultText:'', resultClass:'' }; }
+  else if(tab==='nueve'){ casinoModeLine = pickLine(NINE_LINES); nineState = { phase:'bet', playerCards:[], bankerCards:[], choice:null, resultText:'', resultClass:'' }; }
   render();
 }
 
@@ -2934,6 +3096,8 @@ function mascotContext(){
   }
   if(casinoTab==='roulette') return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   if(casinoTab==='loteria')  return { img: CHARIZARD_IMG.loteria,  line: casinoModeLine };
+  if(casinoTab==='blackjack') return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
+  if(casinoTab==='nueve')     return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   return null;
 }
 
@@ -2966,7 +3130,7 @@ function renderCasino(app){
       </div>
 
       <div id="casino-content">
-        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : renderLoteriaTab()}
+        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : renderLoteriaTab()}
       </div>
     `;
   }
@@ -3569,6 +3733,301 @@ async function spinRoulette(){
     await rouletteLifeRiskCheck(casinoPlayer);
   }, 3000);
 }
+/* ================= BLACKJACK ================= */
+function renderPlayCard(card, hidden){
+  if(hidden) return `<div class="playcard back"></div>`;
+  return `<div class="playcard ${card.color}"><div>${card.rank}</div><div class="pc-suit">${card.suit}</div></div>`;
+}
+function bjChipRow(){
+  return `
+    <div class="chip-selector">
+      ${BJ_CHIP_VALUES.map(v=>`<div class="chip-denom ${v===bjChipValue?'active':''}" onclick="setBjChip(${v})">${v}</div>`).join('')}
+    </div>
+    <div class="bet-input-row">
+      <input type="number" id="bj-free-bet" min="1" placeholder="apuesta libre" value="${bjChipValue}">
+      <button class="ghost" onclick="bjUseFreeBet()">Usar</button>
+    </div>
+  `;
+}
+function setBjChip(v){ bjChipValue = v; render(); }
+function bjUseFreeBet(){
+  const inp = document.getElementById('bj-free-bet');
+  const v = parseInt(inp && inp.value, 10);
+  if(!v || v < 1){ toast('Pon una cantidad válida de tickets.'); return; }
+  bjChipValue = v;
+  render();
+}
+function renderBlackjackTab(){
+  const playerVal = bjHandValue(bjState.playerCards);
+  const dealerVisibleVal = bjState.hideDealer && bjState.dealerCards.length ? bjCardValue(bjState.dealerCards[0].rank) : bjHandValue(bjState.dealerCards);
+  const balance = tickets[casinoPlayer]||0;
+  return `
+    <div class="card-table">
+      <div class="card-row-block dealer-block">
+        <div class="card-row-label">🐉 Crupier ${!bjState.hideDealer && bjState.dealerCards.length ? `<span class="card-row-value">(${bjHandValue(bjState.dealerCards)})</span>` : (bjState.dealerCards.length ? `<span class="card-row-value">(${dealerVisibleVal}+?)</span>` : '')}</div>
+        <div class="card-hand">
+          ${bjState.dealerCards.length===0 ? '<div class="table-hint">Sin cartas todavía</div>' : bjState.dealerCards.map((c,i)=>renderPlayCard(c, bjState.hideDealer && i===1)).join('')}
+        </div>
+      </div>
+
+      <div class="table-hint">${bjState.resultText || (bjState.phase==='bet' ? 'Elige tus tickets y pulsa Apostar' : (bjState.phase==='playing' ? 'Pedir carta, plantarte o doblar' : ''))}</div>
+      ${bjState.resultText ? `<div class="table-result ${bjState.resultClass}">${bjState.resultText}</div>` : ''}
+
+      <div class="card-row-block player-block">
+        <div class="card-row-label">🙂 ${NAMES[casinoPlayer]} (tú) ${bjState.playerCards.length ? `<span class="card-row-value">(${playerVal})</span>` : ''}</div>
+        <div class="card-hand">
+          ${bjState.playerCards.length===0 ? '<div class="table-hint">Sin cartas todavía</div>' : bjState.playerCards.map(c=>renderPlayCard(c, false)).join('')}
+        </div>
+      </div>
+
+      ${bjState.phase==='bet' ? `
+        <div class="bet-panel" style="max-width:420px;">
+          <div class="bet-panel-header">Fichas de ${NAMES[casinoPlayer]} · 🎟️ ${balance}</div>
+          ${bjChipRow()}
+          <div class="bj-action-row">
+            <button class="primary" onclick="bjStartRound()" ${bjDealing?'disabled':''}>${bjDealing?'Repartiendo…':`Apostar ${bjChipValue} 🎟️`}</button>
+          </div>
+        </div>
+      ` : bjState.phase==='playing' ? `
+        <div class="bj-action-row">
+          <button class="primary" onclick="bjHit()" ${bjDealing?'disabled':''}>Pedir carta</button>
+          <button class="ghost" onclick="bjStand()" ${bjDealing?'disabled':''}>Plantarse</button>
+          <button class="ghost" onclick="bjDouble()" ${bjDealing || balance < bjBetAmount || bjState.playerCards.length!==2 ?'disabled':''}>Doblar (${bjBetAmount} más)</button>
+        </div>
+      ` : `
+        <div class="bj-action-row">
+          <button class="primary" onclick="bjNewRound()">Otra ronda</button>
+        </div>
+      `}
+    </div>
+  `;
+}
+async function bjStartRound(){
+  if(bjDealing) return;
+  const bet = bjChipValue;
+  if(!bet || bet < 1){ toast('Elige una cantidad válida.'); return; }
+  if((tickets[casinoPlayer]||0) < bet){ toast('No tienes suficientes tickets.'); return; }
+  bjDealing = true;
+  bjBetAmount = bet;
+  await addTickets(casinoPlayer, -bet, 'Apuesta en blackjack');
+  bjState = { phase:'playing', playerCards:[drawCard(), drawCard()], dealerCards:[drawCard(), drawCard()], hideDealer:true, resultText:'', resultClass:'' };
+  playSound('ticket');
+  render();
+  const pVal = bjHandValue(bjState.playerCards);
+  if(pVal === 21){
+    // Blackjack natural: se resuelve solo, revelando la carta tapada del crupier
+    await bjResolveNatural();
+  }
+  bjDealing = false;
+  render();
+}
+async function bjResolveNatural(){
+  bjState.hideDealer = false;
+  const dVal = bjHandValue(bjState.dealerCards);
+  if(dVal === 21){
+    bjState.resultText = `¡Empate! Ambos tenéis Blackjack. Recuperas tus ${bjBetAmount} tickets.`;
+    bjState.resultClass = 'push';
+    await addTickets(casinoPlayer, bjBetAmount, 'Empate en blackjack');
+    playSound('coin');
+  } else {
+    const payout = Math.round(bjBetAmount * 2.5);
+    bjState.resultText = `¡Blackjack natural! Ganas x2.5 → +${payout} tickets.`;
+    bjState.resultClass = 'win';
+    await addTickets(casinoPlayer, payout, 'Blackjack natural');
+    playSound('bigwin');
+  }
+  bjState.phase = 'result';
+}
+async function bjHit(){
+  if(bjDealing || bjState.phase!=='playing') return;
+  bjDealing = true;
+  bjState.playerCards.push(drawCard());
+  playSound('click');
+  render();
+  const val = bjHandValue(bjState.playerCards);
+  if(val > 21){
+    bjState.hideDealer = false;
+    bjState.resultText = `Te pasas de 21 (${val}). Pierdes tu apuesta.`;
+    bjState.resultClass = 'lose';
+    bjState.phase = 'result';
+    playSound('lose');
+  }
+  bjDealing = false;
+  render();
+}
+async function bjStand(){
+  if(bjDealing || bjState.phase!=='playing') return;
+  bjDealing = true;
+  await bjPlayDealer();
+  bjDealing = false;
+  render();
+}
+async function bjDouble(){
+  if(bjDealing || bjState.phase!=='playing' || bjState.playerCards.length!==2) return;
+  if((tickets[casinoPlayer]||0) < bjBetAmount){ toast('No tienes suficientes tickets para doblar.'); return; }
+  bjDealing = true;
+  await addTickets(casinoPlayer, -bjBetAmount, 'Doblar apuesta en blackjack');
+  bjBetAmount *= 2;
+  bjState.playerCards.push(drawCard());
+  render();
+  const val = bjHandValue(bjState.playerCards);
+  if(val > 21){
+    bjState.hideDealer = false;
+    bjState.resultText = `Te pasas de 21 (${val}) tras doblar. Pierdes la apuesta.`;
+    bjState.resultClass = 'lose';
+    bjState.phase = 'result';
+    playSound('lose');
+  } else {
+    await bjPlayDealer();
+  }
+  bjDealing = false;
+  render();
+}
+function bjSleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+async function bjPlayDealer(){
+  bjState.hideDealer = false;
+  render();
+  await bjSleep(500);
+  while(bjHandValue(bjState.dealerCards) < 17){
+    bjState.dealerCards.push(drawCard());
+    render();
+    await bjSleep(550);
+  }
+  const pVal = bjHandValue(bjState.playerCards);
+  const dVal = bjHandValue(bjState.dealerCards);
+  if(dVal > 21){
+    const payout = bjBetAmount * 2;
+    bjState.resultText = `¡El crupier se pasa (${dVal})! Ganas → +${payout} tickets.`;
+    bjState.resultClass = 'win';
+    await addTickets(casinoPlayer, payout, 'Victoria en blackjack');
+    playSound('win');
+  } else if(pVal > dVal){
+    const payout = bjBetAmount * 2;
+    bjState.resultText = `¡Ganas! ${pVal} contra ${dVal} → +${payout} tickets.`;
+    bjState.resultClass = 'win';
+    await addTickets(casinoPlayer, payout, 'Victoria en blackjack');
+    playSound('win');
+  } else if(pVal < dVal){
+    bjState.resultText = `Pierdes. ${pVal} contra ${dVal}.`;
+    bjState.resultClass = 'lose';
+    playSound('lose');
+  } else {
+    bjState.resultText = `Empate a ${pVal}. Recuperas tus ${bjBetAmount} tickets.`;
+    bjState.resultClass = 'push';
+    await addTickets(casinoPlayer, bjBetAmount, 'Empate en blackjack');
+    playSound('coin');
+  }
+  bjState.phase = 'result';
+  await rouletteLifeRiskCheck(casinoPlayer);
+}
+function bjNewRound(){
+  casinoModeLine = pickLine(BLACKJACK_LINES);
+  bjState = { phase:'bet', playerCards:[], dealerCards:[], hideDealer:true, resultText:'', resultClass:'' };
+  render();
+}
+
+/* ================= EL NUEVE (mini punto/banca) ================= */
+function nineChipRow(){
+  return `
+    <div class="chip-selector">
+      ${NINE_CHIP_VALUES.map(v=>`<div class="chip-denom ${v===nineChipValue?'active':''}" onclick="setNineChip(${v})">${v}</div>`).join('')}
+    </div>
+    <div class="bet-input-row">
+      <input type="number" id="nine-free-bet" min="1" placeholder="apuesta libre" value="${nineChipValue}">
+      <button class="ghost" onclick="nineUseFreeBet()">Usar</button>
+    </div>
+  `;
+}
+function setNineChip(v){ nineChipValue = v; render(); }
+function nineUseFreeBet(){
+  const inp = document.getElementById('nine-free-bet');
+  const v = parseInt(inp && inp.value, 10);
+  if(!v || v < 1){ toast('Pon una cantidad válida de tickets.'); return; }
+  nineChipValue = v;
+  render();
+}
+function renderNineTab(){
+  const balance = tickets[casinoPlayer]||0;
+  return `
+    <div class="card-table">
+      <div class="card-row-block dealer-block">
+        <div class="card-row-label">🐉 Crupier ${nineState.bankerCards.length ? `<span class="card-row-value">(${nineHandValue(nineState.bankerCards)})</span>` : ''}</div>
+        <div class="card-hand">
+          ${nineState.bankerCards.length===0 ? '<div class="table-hint">Sin cartas todavía</div>' : nineState.bankerCards.map(c=>renderPlayCard(c,false)).join('')}
+        </div>
+      </div>
+
+      <div class="table-hint">${nineState.resultText || 'Elige tus tickets y quién crees que se acerca más al 9'}</div>
+      ${nineState.resultText ? `<div class="table-result ${nineState.resultClass}">${nineState.resultText}</div>` : ''}
+
+      <div class="card-row-block player-block">
+        <div class="card-row-label">🙂 ${NAMES[casinoPlayer]} (tú) ${nineState.playerCards.length ? `<span class="card-row-value">(${nineHandValue(nineState.playerCards)})</span>` : ''}</div>
+        <div class="card-hand">
+          ${nineState.playerCards.length===0 ? '<div class="table-hint">Sin cartas todavía</div>' : nineState.playerCards.map(c=>renderPlayCard(c,false)).join('')}
+        </div>
+      </div>
+
+      <div class="bet-panel" style="max-width:440px;">
+        <div class="bet-panel-header">Fichas de ${NAMES[casinoPlayer]} · 🎟️ ${balance}</div>
+        ${nineChipRow()}
+        <div class="nine-choice-row">
+          <div class="nine-choice-btn nc-player" onclick="${nineDealing?'':`nineBet('jugador')`}">
+            <div class="nc-title">Jugador</div><div class="nc-mult">x2</div>
+          </div>
+          <div class="nine-choice-btn nc-tie" onclick="${nineDealing?'':`nineBet('empate')`}">
+            <div class="nc-title">Empate</div><div class="nc-mult">x8</div>
+          </div>
+          <div class="nine-choice-btn nc-banker" onclick="${nineDealing?'':`nineBet('crupier')`}">
+            <div class="nc-title">Crupier</div><div class="nc-mult">x2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+async function nineBet(choice){
+  if(nineDealing) return;
+  const bet = nineChipValue;
+  if(!bet || bet < 1){ toast('Elige una cantidad válida.'); return; }
+  if((tickets[casinoPlayer]||0) < bet){ toast('No tienes suficientes tickets.'); return; }
+  nineDealing = true;
+  nineBetAmount = bet;
+  nineState = { phase:'dealing', playerCards:[], bankerCards:[], choice, resultText:'', resultClass:'' };
+  await addTickets(casinoPlayer, -bet, 'Apuesta en El Nueve');
+  playSound('ticket');
+  render();
+  await bjSleep(400);
+  nineState.playerCards.push(drawCard()); render(); await bjSleep(350);
+  nineState.bankerCards.push(drawCard()); render(); await bjSleep(350);
+  nineState.playerCards.push(drawCard()); render(); await bjSleep(350);
+  nineState.bankerCards.push(drawCard()); render(); await bjSleep(400);
+
+  const pVal = nineHandValue(nineState.playerCards);
+  const bVal = nineHandValue(nineState.bankerCards);
+  let outcome;
+  if(pVal === bVal) outcome = 'empate';
+  else if(pVal > bVal) outcome = 'jugador';
+  else outcome = 'crupier';
+
+  const labels = { jugador:'Jugador', empate:'Empate', crupier:'Crupier' };
+  if(choice === outcome){
+    const mult = outcome === 'empate' ? 8 : 2;
+    const payout = bet * mult;
+    nineState.resultText = `${pVal} contra ${bVal} → ¡Gana ${labels[outcome]}! Acertaste, +${payout} tickets.`;
+    nineState.resultClass = 'win';
+    await addTickets(casinoPlayer, payout, `Victoria en El Nueve (${labels[outcome]})`);
+    playSound(outcome==='empate' ? 'bigwin' : 'win');
+  } else {
+    nineState.resultText = `${pVal} contra ${bVal} → Gana ${labels[outcome]}. Pierdes tu apuesta.`;
+    nineState.resultClass = 'lose';
+    playSound('lose');
+  }
+  nineState.phase = 'result';
+  nineDealing = false;
+  render();
+  await rouletteLifeRiskCheck(casinoPlayer);
+}
+
 function renderLoteriaTab(){
   const counts = {};
   TRAINERS.forEach(t=>counts[t]=0);
@@ -5219,7 +5678,7 @@ async function deleteTradeRecord(id){
   render();
   showNewsPopupIfAny();
   setInterval(async ()=>{
-    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing) return; // don't refresh mid-edit or mid-spin
+    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing) return; // don't refresh mid-edit or mid-spin
     await loadAll();
     render();
   }, 4000);
