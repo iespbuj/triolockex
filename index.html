@@ -2291,6 +2291,7 @@ let duelCountdownInterval = null;
 let view = 'home';
 let currentTrainer = null;
 let loaded = false;
+let lastLoadSignature = null; // para saber si el ultimo loadAll() trajo algo distinto de verdad
 
 let POKEMON_NAMES = [];
 let ITEM_NAMES = [];
@@ -2404,6 +2405,18 @@ async function loadAll(){
   TRAINERS.forEach((t, i) => { graveyard[t] = graveyardResults[i] || []; });
   TRAINERS.forEach((t, i) => { manualFainted[t] = manualFaintedResults[i] || []; });
   loaded = true;
+
+  // Firma exacta de todo el estado aplicado. Comparamos con la anterior para
+  // saber si de verdad ha cambiado algo -- si no, el que llama puede
+  // ahorrarse el render() (que es caro: reconstruye toda la pantalla).
+  const signature = JSON.stringify({
+    hearts, teams, tickets, pendingPrizes, dailyBonusDate, money, badgesRaw, locationName,
+    history, tradesActive, tradesHistory, duelState, duelHistory, duelBets,
+    normas, sancionState, loteria, collections, graveyard, manualFainted,
+  });
+  const changed = signature !== lastLoadSignature;
+  lastLoadSignature = signature;
+  return changed;
 }
 async function saveProfile(t){
   profileSaveInFlight[t] = (profileSaveInFlight[t]||0) + 1;
@@ -2711,8 +2724,10 @@ function setActiveNav(){
 }
 
 /* ---------------- RENDER ---------------- */
+let _allMonsCache = {}; // se limpia en cada render(): evita recalcular lo mismo varias veces en un mismo pintado
 function render(){
   setActiveNav();
+  _allMonsCache = {};
   if(duelCountdownInterval){ clearInterval(duelCountdownInterval); duelCountdownInterval = null; }
   const app = document.getElementById('app');
   if(!loaded){ app.innerHTML = '<div class="empty-state">Cargando…</div>'; return; }
@@ -2757,6 +2772,7 @@ function overCapMonsOf(t){
 // + los que estén en cajas (nunca debilitados, eso solo existe en equipo).
 // Sirve tanto para "ver un Pokémon en detalle" como para "elegir con cuál ofertar".
 function allMonsOf(t){
+  if(_allMonsCache[t]) return _allMonsCache[t];
   const manualSet = new Set(manualFainted[t]||[]);
   const team = (teams[t]||[]).map(p => ({
     pid: p.pid, nickname: p.nickname, speciesName: p.species, sprite: p.sprite,
@@ -2773,7 +2789,8 @@ function allMonsOf(t){
       fainted: !!m.fainted || manualSet.has(pid), inTeam: false, box: m.box || null, boxName: m.boxName || null,
       abilityName: m.abilityName || null, shiny: !!m.shiny,
     }));
-  return [...team, ...boxMons];
+  _allMonsCache[t] = [...team, ...boxMons];
+  return _allMonsCache[t];
 }
 function availableMonsOf(t){
   return allMonsOf(t).filter(m => !m.fainted);
@@ -2893,7 +2910,7 @@ function renderHome(app){
           <div class="mini-team">
             ${Array.from({length:6}).map((_,i)=>{
               const p = teams[t][i];
-              return `<div class="mini-slot">${p?`<img src="${p.sprite}" alt="">`:''}</div>`;
+              return `<div class="mini-slot">${p?`<img loading="lazy" src="${p.sprite}" alt="">`:''}</div>`;
             }).join('')}
           </div>
           <div class="team-count">${teamCount}/6 POKÉMON</div>
@@ -2988,7 +3005,7 @@ function renderProfile(app, t){
           return `
           <div class="poke-slot${p.fainted ? ' fainted' : ''}" onclick="openPokemonDetail('${t}','${p.pid}')" style="cursor:pointer;">
             ${p.level != null ? `<div class="poke-level">Nv.${p.level}</div>` : ''}
-            <img src="${p.sprite}" alt="${p.species}">
+            <img loading="lazy" src="${p.sprite}" alt="${p.species}">
             <div class="poke-nick">${p.nickname}</div>
             <div class="poke-species">${p.species.replace(/-/g,' ')}</div>
             ${p.fainted ? `<div class="poke-fainted-tag">💀 Debilitado</div>` : ''}
@@ -3022,7 +3039,7 @@ function renderProfile(app, t){
               <div class="team-grid" style="grid-template-columns:repeat(auto-fill, minmax(84px, 1fr));">
                 ${byBox[boxNum].map(m=>`
                   <div class="poke-slot${m.fainted ? ' fainted' : ''}" onclick="openPokemonDetail('${t}','${m.pid}')" style="cursor:pointer;padding:8px 4px;">
-                    <img src="${m.sprite}" alt="${m.speciesName}" style="width:56px;height:56px;">
+                    <img loading="lazy" src="${m.sprite}" alt="${m.speciesName}" style="width:56px;height:56px;">
                     <div class="poke-nick" style="font-size:11px;">${m.nickname}</div>
                     <div class="poke-species" style="font-size:9px;">${m.speciesName.replace(/-/g,' ')}</div>
                     ${m.fainted ? `<div class="poke-fainted-tag">💀</div>` : ''}
@@ -3076,7 +3093,7 @@ function renderCemeteryTab(app, tabsHtml){
     <div class="cemetery-grid">
       ${all.map(g=>`
         <div class="tomb">
-          <img src="${g.sprite}" alt="${g.speciesName}">
+          <img loading="lazy" src="${g.sprite}" alt="${g.speciesName}">
           <div class="tomb-name">${g.nickname}</div>
           <div class="tomb-species">${g.speciesName.replace(/-/g,' ')}</div>
           <div class="tomb-meta">Nv.${g.level} · ${NAMES[g.trainer]}</div>
@@ -3118,7 +3135,7 @@ function renderPokedex(app){
           const who = seen ? Array.from(seenSet).map(t=>NAMES[t]).join(', ') : '';
           return `
           <div class="dex-slot ${seen ? 'seen' : 'unseen'}" ${seen ? `onclick="openDexSpeciesDetail(${id})" style="cursor:pointer;"` : ''} title="${seen ? `#${id} ${SPECIES_NAMES[id]} · ${who}` : `#${id} ???`}">
-            <img src="${pokedexSpriteUrl(id)}" loading="lazy" alt="${seen ? SPECIES_NAMES[id] : '?'}">
+            <img loading="lazy" src="${pokedexSpriteUrl(id)}" loading="lazy" alt="${seen ? SPECIES_NAMES[id] : '?'}">
             <span class="dex-num">#${id}</span>
           </div>`;
         }).join('')}
@@ -3133,7 +3150,7 @@ function openDexSpeciesDetail(id){
   })).filter(o => o.mons.length > 0);
   openModal(`
     <div class="poke-detail-hero" style="margin-bottom:14px;">
-      <img src="${pokedexSpriteUrl(id)}" alt="${name}">
+      <img loading="lazy" src="${pokedexSpriteUrl(id)}" alt="${name}">
       <div class="poke-detail-name">#${id} ${name}</div>
     </div>
     ${owners.map(o=>`
@@ -3143,7 +3160,7 @@ function openDexSpeciesDetail(id){
           ${o.mons.map(m=>`
             <div class="poke-slot${m.fainted?' fainted':''}" onclick="closeModal();openPokemonDetail('${o.t}','${m.pid}')" style="cursor:pointer;padding:8px 4px;">
               ${m.level!=null ? `<div class="poke-level">Nv.${m.level}</div>` : ''}
-              <img src="${m.sprite}" style="width:56px;height:56px;">
+              <img loading="lazy" src="${m.sprite}" style="width:56px;height:56px;">
               <div class="poke-nick" style="font-size:11px;">${m.nickname}${m.shiny?' ✨':''}</div>
               ${m.fainted ? `<div class="poke-fainted-tag">💀</div>` : ''}
             </div>
@@ -4529,7 +4546,7 @@ function tradeLinkIcon(){
   </div>`;
 }
 function tradeChips(items){
-  return items.map(it=>`<div class="chip"><img src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span></div>`).join('');
+  return items.map(it=>`<div class="chip"><img loading="lazy" src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span></div>`).join('');
 }
 
 function renderTrade(app){
@@ -4563,7 +4580,7 @@ function renderTrade(app){
             ${o.wantedPokemon ? `
               <span class="trade-side-label">Pide a cambio (de ${NAMES[o.wantedPokemon.trainer]})</span>
               <div class="chip-row">
-                <div class="chip"><img src="${o.wantedPokemon.sprite}"><span>${o.wantedPokemon.nickname}</span></div>
+                <div class="chip"><img loading="lazy" src="${o.wantedPokemon.sprite}"><span>${o.wantedPokemon.nickname}</span></div>
               </div>
             ` : ''}
             <span class="empty-txt">${o.counters.length===0 ? 'Sin contraofertas todavía' : `${o.counters.length} contraoferta${o.counters.length===1?'':'s'} · mira abajo`}</span>
@@ -5616,7 +5633,7 @@ function openPokemonDetail(ownerTrainer, pid){
     <div class="poke-detail">
       <div class="poke-detail-hero">
         ${mon.fainted ? `<div class="poke-detail-tag fainted">💀 Debilitado</div>` : `<div class="poke-detail-tag">${mon.inTeam ? '⚔️ En equipo' : '📦 En caja'}</div>`}
-        <img src="${mon.sprite}" alt="${mon.speciesName}">
+        <img loading="lazy" src="${mon.sprite}" alt="${mon.speciesName}">
         <div class="poke-detail-name">${mon.nickname}</div>
         <div class="poke-detail-species">${mon.speciesName.replace(/-/g,' ')}</div>
       </div>
@@ -5701,7 +5718,7 @@ async function confirmRevealAbility(targetTrainer){
   openModal(`
     <h3>🔓 ¡Habilidad revelada!</h3>
     <div style="text-align:center;margin:12px 0;">
-      <img src="${mon.sprite}" style="width:96px;height:96px;">
+      <img loading="lazy" src="${mon.sprite}" style="width:96px;height:96px;">
       <div style="font-weight:700;font-size:16px;color:var(--silver-bright);">${mon.nickname}</div>
       <div style="font-size:12px;color:var(--silver-dim);text-transform:capitalize;">${mon.speciesName.replace(/-/g,' ')} · de ${NAMES[targetTrainer]}</div>
       <div class="location-pill" style="font-size:13px;padding:6px 16px;margin-top:10px;">✨ ${mon.abilityName || 'Desconocida'}</div>
@@ -5751,7 +5768,7 @@ function renderOffererPokemonList(){
   el.innerHTML = list.map(m=>`
     <label class="pick-mon-item" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
       <input type="checkbox" value="${m.pid}" onchange="toggleOfferSelected('${m.pid}', this.checked)">
-      <img src="${m.sprite}" style="width:36px;height:36px;">
+      <img loading="lazy" src="${m.sprite}" style="width:36px;height:36px;">
       <div>
         <div class="n-text">${m.nickname}${m.level!=null ? ` · Nv.${m.level}` : ''}</div>
         <div class="n-meta mono">${m.speciesName.replace(/-/g,' ')}${m.inTeam ? ' · equipo' : ' · caja'}</div>
@@ -5838,7 +5855,7 @@ async function addPendingItem(){
 }
 function renderPendingChips(){
   document.getElementById('pending-chips').innerHTML = pendingItems.map((it,i)=>
-    `<div class="chip"><img src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span> <button class="ghost" style="padding:0 6px;" onclick="removePendingItem(${i})">✕</button></div>`
+    `<div class="chip"><img loading="lazy" src="${it.sprite}"><span>${it.name.replace(/-/g,' ')}</span> <button class="ghost" style="padding:0 6px;" onclick="removePendingItem(${i})">✕</button></div>`
   ).join('');
 }
 function removePendingItem(i){ pendingItems.splice(i,1); renderPendingChips(); }
@@ -5913,8 +5930,8 @@ async function deleteTradeRecord(id){
   showNewsPopupIfAny();
   setInterval(async ()=>{
     if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing) return; // don't refresh mid-edit or mid-spin
-    await loadAll();
-    render();
+    const changed = await loadAll();
+    if(changed) render(); // si no ha cambiado nada, nos ahorramos reconstruir toda la pantalla
   }, 4000);
 })();
 </script>
