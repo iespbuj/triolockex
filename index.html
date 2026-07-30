@@ -534,6 +534,25 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
   margin: 0 0 16px; font-size: 20px;
 }
 .field{ margin-bottom: 14px; }
+
+.duel-bet-panel{
+  max-width: 360px; margin: -6px auto 18px;
+  background: linear-gradient(160deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border: 1px solid var(--border); border-top: 3px solid var(--neon-green);
+  border-radius: 14px; padding: 16px 18px;
+}
+.duel-bet-title{
+  font-family:'Rajdhani',sans-serif; font-weight:800; letter-spacing:.5px; font-size:14px;
+  color: var(--silver-bright); margin-bottom: 10px; text-align:center;
+}
+.duel-bet-list{ display:flex; flex-direction:column; gap:6px; margin-bottom: 12px; }
+.duel-bet-row{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; font-size: 12px; color: var(--silver-bright);
+}
+.duel-bet-row .dbr-arrow{ color: var(--silver-dim); flex:1; text-align:center; }
+.duel-bet-row .dbr-amount{ color: var(--neon-green); font-weight:700; }
 .field label{ display:block; font-size: 12px; color: var(--silver-dim); margin-bottom:6px; letter-spacing:0.5px; }
 .field input, .field select{
   width:100%; background: var(--panel); border:1px solid var(--border); border-radius:8px;
@@ -2258,6 +2277,7 @@ function loteriaColorFor(t){ return LOTERIA_COLORS[t] || WHEEL_COLORS[TRAINERS.i
 
 let duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
 let duelHistory = [];
+let duelBets = { match1: [], final: [] }; // {trainer, pick, amount}[] por combate
 let duelSpinning = false;
 let duelWheelRotation = 0;
 
@@ -2340,12 +2360,13 @@ let profileSaveInFlight = {}; // contador por entrenador: >0 mientras hay un sav
 TRAINERS.forEach(t => profileSaveInFlight[t] = 0);
 
 async function loadAll(){
-  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
+  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, duelBetsResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
     storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
     storeGet('x:duelHistory', []),
+    storeGet('x:duelBets', { match1: [], final: [] }),
     storeGet('x:normas', []),
     storeGet('x:sancion', { offender: null, prize: null }),
     storeGet('x:loteria', { pot: 0, entries: [], history: [] }),
@@ -2375,6 +2396,7 @@ async function loadAll(){
   tradesHistory = tradesResult.history;
   duelState = duelResult;
   duelHistory = duelHistoryResult;
+  duelBets = duelBetsResult;
   normas = normasResult;
   sancionState = sancionResult;
   loteria = loteriaResult;
@@ -2416,6 +2438,84 @@ async function saveDuelState(){
 async function saveDuelHistory(){
   return await storeSet('x:duelHistory', duelHistory);
 }
+async function saveDuelBets(){
+  return await storeSet('x:duelBets', duelBets);
+}
+
+const DUEL_BET_CHIPS = [5, 10, 20, 50];
+let duelBetChipValue = 10;
+function setDuelBetChip(v){ duelBetChipValue = v; render(); }
+
+function renderDuelBetPanel(matchKey, p1, p2){
+  const bets = duelBets[matchKey] || [];
+  const alreadyBet = new Set(bets.map(b=>b.trainer));
+  const available = TRAINERS.filter(t=>!alreadyBet.has(t));
+  return `
+    <div class="duel-bet-panel">
+      <div class="duel-bet-title">💰 Apostar en este combate</div>
+      ${bets.length>0 ? `
+        <div class="duel-bet-list">
+          ${bets.map(b=>`
+            <div class="duel-bet-row">
+              <span>${NAMES[b.trainer]}</span>
+              <span class="dbr-arrow">→ ${NAMES[b.pick]}</span>
+              <span class="mono dbr-amount">${b.amount} 🎟️</span>
+            </div>`).join('')}
+        </div>
+      ` : `<div class="table-hint">Nadie ha apostado todavía.</div>`}
+      ${available.length===0 ? `<div class="table-hint">Los tres ya han apostado en este combate.</div>` : `
+        <div class="field">
+          <label>¿Quién apuesta?</label>
+          <select id="duelbet-trainer-${matchKey}">
+            ${available.map(t=>`<option value="${t}">${NAMES[t]} (${tickets[t]||0} 🎟️)</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>¿A quién?</label>
+          <select id="duelbet-pick-${matchKey}">
+            <option value="${p1}">${NAMES[p1]}</option>
+            <option value="${p2}">${NAMES[p2]}</option>
+          </select>
+        </div>
+        <div class="chip-selector">
+          ${DUEL_BET_CHIPS.map(v=>`<div class="chip-denom ${v===duelBetChipValue?'active':''}" onclick="setDuelBetChip(${v})"><span>${v}</span></div>`).join('')}
+        </div>
+        <div class="err-msg" id="duelbet-err-${matchKey}"></div>
+        <button class="primary" style="width:100%;margin-top:6px;" onclick="placeDuelBet('${matchKey}')">Apostar ${duelBetChipValue} tickets (paga x2 si aciertas)</button>
+      `}
+    </div>
+  `;
+}
+
+async function placeDuelBet(matchKey){
+  const trainerSel = document.getElementById(`duelbet-trainer-${matchKey}`);
+  const pickSel = document.getElementById(`duelbet-pick-${matchKey}`);
+  const err = document.getElementById(`duelbet-err-${matchKey}`);
+  if(!trainerSel || !pickSel) return;
+  const trainer = trainerSel.value;
+  const pick = pickSel.value;
+  const amount = duelBetChipValue;
+  if((tickets[trainer]||0) < amount){ err.textContent = `${NAMES[trainer]} no tiene suficientes tickets.`; return; }
+  if((duelBets[matchKey]||[]).some(b=>b.trainer===trainer)){ err.textContent = 'Ya ha apostado en este combate.'; return; }
+  await addTickets(trainer, -amount, `Apuesta en combate a favor de ${NAMES[pick]}`);
+  duelBets[matchKey] = [...(duelBets[matchKey]||[]), { trainer, pick, amount }];
+  render();
+  const ok = await saveDuelBets();
+  if(!ok) queueRetry('duelBets', saveDuelBets);
+}
+
+async function resolveDuelBets(matchKey, winner){
+  const bets = duelBets[matchKey] || [];
+  for(const b of bets){
+    if(b.pick === winner){
+      await addTickets(b.trainer, b.amount*2, `Acertó su apuesta del combate (x2)`);
+    }
+  }
+  duelBets[matchKey] = [];
+  const ok = await saveDuelBets();
+  if(!ok) queueRetry('duelBets', saveDuelBets);
+}
+
 async function saveNormas(){
   return await storeSet('x:normas', normas);
 }
@@ -4703,6 +4803,8 @@ function renderWheelAndBracket(){
         <div class="bracket-bye">${NAMES[bye]} pasa directo a la final</div>
       </div>
 
+      ${!match1Winner ? renderDuelBetPanel('match1', match1.p1, match1.p2) : ''}
+
       ${match1RewardSection}
 
       ${match1Winner ? `
@@ -4714,7 +4816,9 @@ function renderWheelAndBracket(){
           <div class="bracket-player ${finalWinner===bye?'winner':''} ${finalWinner?'locked':''}" ${finalWinner?'':`onclick="setFinalWinner('${bye}')"`}>${NAMES[bye]}</div>
         </div>
         ${renderRivalryLine(match1Winner, bye)}
-      </div>` : ''}
+      </div>
+      ${!finalWinner ? renderDuelBetPanel('final', match1Winner, bye) : ''}
+      ` : ''}
     </div>
 
     ${finalPrizeSection}
@@ -4962,6 +5066,7 @@ async function setMatch1Winner(winner){
   if(!ok) queueRetry('duel', saveDuelState);
   await addTickets(duelState.match1.p1, 5, 'Jugar el Combate 1');
   await addTickets(duelState.match1.p2, 5, 'Jugar el Combate 1');
+  await resolveDuelBets('match1', winner);
   render();
 }
 async function setFinalWinner(winner){
@@ -4973,6 +5078,7 @@ async function setFinalWinner(winner){
   if(!ok) queueRetry('duel', saveDuelState);
   await addTickets(duelState.match1Winner, 5, 'Jugar la Final');
   await addTickets(duelState.bye, 5, 'Jugar la Final');
+  await resolveDuelBets('final', winner);
   render();
 }
 
