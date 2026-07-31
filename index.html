@@ -912,6 +912,19 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .bracket-bye{ font-size: 11px; color: var(--silver-dim); text-align:center; margin-top:8px; }
 .bracket-bye::before{ content:'🛡️ '; }
+
+.bo3-score{
+  text-align:center; font-family:'JetBrains Mono', monospace; font-weight:700; font-size:14px;
+  color: var(--silver-bright); margin: 6px 0 2px; letter-spacing:.5px;
+}
+.bo3-narration{
+  max-width: 360px; margin: 0 auto 14px; text-align:center;
+  background: linear-gradient(160deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border: 1px solid var(--border); border-left: 3px solid var(--gold);
+  border-radius: 12px; padding: 12px 16px; font-size: 13px; line-height:1.6;
+  color: var(--silver-bright); animation: floatIn .35s ease both;
+}
+.bo3-narration strong{ color: var(--gold); }
 .spin-note{ font-size: 12px; color: var(--silver-dim); text-align:center; margin-bottom: 14px; }
 
 .champion-banner{
@@ -2275,7 +2288,7 @@ let loteriaDrawing = false;
 const LOTERIA_COLORS = { iker: 'var(--neon-cyan)', joel: 'var(--neon-pink)', alex: 'var(--neon-yellow)' };
 function loteriaColorFor(t){ return LOTERIA_COLORS[t] || WHEEL_COLORS[TRAINERS.indexOf(t)%WHEEL_COLORS.length]; }
 
-let duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
+let duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
 let duelHistory = [];
 let duelBets = { match1: [], final: [] }; // {trainer, pick, amount}[] por combate
 let duelSpinning = false;
@@ -2365,7 +2378,7 @@ async function loadAll(){
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
-    storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
+    storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
     storeGet('x:duelHistory', []),
     storeGet('x:duelBets', { match1: [], final: [] }),
     storeGet('x:normas', []),
@@ -2601,14 +2614,28 @@ function updateSyncBadge(){
   }
   el.textContent = `⚠ sin guardar (${pendingSaves.size}) — no cierres la pestaña`;
 }
+let pendingSaveNextAttempt = new Map(); // key -> cuando toca volver a intentarlo (backoff creciente)
+let pendingSaveFailCount = new Map();   // key -> fallos seguidos
 function queueRetry(key, saveFn){
   pendingSaves.set(key, saveFn);
+  if(!pendingSaveNextAttempt.has(key)) pendingSaveNextAttempt.set(key, Date.now());
   updateSyncBadge();
 }
 async function flushPending(){
+  const now = Date.now();
   for(const [key, saveFn] of [...pendingSaves.entries()]){
+    if(now < (pendingSaveNextAttempt.get(key) || 0)) continue; // todavia no toca este, en espera
     const ok = await saveFn();
-    if(ok){ pendingSaves.delete(key); }
+    if(ok){
+      pendingSaves.delete(key);
+      pendingSaveNextAttempt.delete(key);
+      pendingSaveFailCount.delete(key);
+    } else {
+      const fails = (pendingSaveFailCount.get(key) || 0) + 1;
+      pendingSaveFailCount.set(key, fails);
+      // 4s, 8s, 16s, 32s... hasta un tope de 2 minutos entre reintentos
+      pendingSaveNextAttempt.set(key, now + Math.min(4000 * (2 ** fails), 120000));
+    }
   }
   updateSyncBadge();
 }
@@ -4769,7 +4796,9 @@ function renderWheelAndBracket(){
   }
 
   // Fase 2: ya sabemos quién juega el Combate 1 y quién pasa directo a la final
-  const { bye, match1, match1Winner, match1LoserPrize, finalWinner, finalWinnerPrize, finalLoserPrize } = duelState;
+  const { bye, match1, match1Games, match1Winner, match1LoserPrize, finalGames, finalWinner, finalWinnerPrize, finalLoserPrize } = duelState;
+  const m1Games = match1Games || [];
+  const fGames = finalGames || [];
 
   let match1RewardSection = '';
   if(match1Winner){
@@ -4810,15 +4839,18 @@ function renderWheelAndBracket(){
   return `
     <div class="bracket">
       <div class="bracket-match ${match1Winner?'':'active'}">
-        <div class="match-label">Combate 1</div>
+        <div class="match-label">Combate 1 ${m1Games.length>0 && !match1Winner ? `· Juego ${Math.min(m1Games.length+1,3)} de 3` : ''}</div>
         <div class="bracket-vs">
-          <div class="bracket-player ${match1Winner===match1.p1?'winner':''} ${match1Winner?'locked':''}" ${match1Winner?'':`onclick="setMatch1Winner('${match1.p1}')"`}>${NAMES[match1.p1]}</div>
+          <div class="bracket-player ${match1Winner===match1.p1?'winner':''} ${match1Winner?'locked':''}" ${match1Winner?'':`onclick="recordBo3Game('match1','${match1.p1}')"`}>${NAMES[match1.p1]}</div>
           <div class="bracket-vs-sep">VS</div>
-          <div class="bracket-player ${match1Winner===match1.p2?'winner':''} ${match1Winner?'locked':''}" ${match1Winner?'':`onclick="setMatch1Winner('${match1.p2}')"`}>${NAMES[match1.p2]}</div>
+          <div class="bracket-player ${match1Winner===match1.p2?'winner':''} ${match1Winner?'locked':''}" ${match1Winner?'':`onclick="recordBo3Game('match1','${match1.p2}')"`}>${NAMES[match1.p2]}</div>
         </div>
+        ${m1Games.length>0 ? `<div class="bo3-score">${NAMES[match1.p1]} ${m1Games.filter(g=>g===match1.p1).length} - ${m1Games.filter(g=>g===match1.p2).length} ${NAMES[match1.p2]}</div>` : ''}
         ${renderRivalryLine(match1.p1, match1.p2)}
         <div class="bracket-bye">${NAMES[bye]} pasa directo a la final</div>
       </div>
+
+      ${m1Games.length>0 ? `<div class="bo3-narration">${bo3Narration(m1Games, match1.p1, match1.p2, false)}</div>` : ''}
 
       ${!match1Winner ? renderDuelBetPanel('match1', match1.p1, match1.p2) : ''}
 
@@ -4826,14 +4858,16 @@ function renderWheelAndBracket(){
 
       ${match1Winner ? `
       <div class="bracket-match ${finalWinner?'':'active'}">
-        <div class="match-label">Final</div>
+        <div class="match-label">Final ${fGames.length>0 && !finalWinner ? `· Juego ${Math.min(fGames.length+1,3)} de 3` : ''}</div>
         <div class="bracket-vs">
-          <div class="bracket-player ${finalWinner===match1Winner?'winner':''} ${finalWinner?'locked':''}" ${finalWinner?'':`onclick="setFinalWinner('${match1Winner}')"`}>${NAMES[match1Winner]}</div>
+          <div class="bracket-player ${finalWinner===match1Winner?'winner':''} ${finalWinner?'locked':''}" ${finalWinner?'':`onclick="recordBo3Game('final','${match1Winner}')"`}>${NAMES[match1Winner]}</div>
           <div class="bracket-vs-sep">VS</div>
-          <div class="bracket-player ${finalWinner===bye?'winner':''} ${finalWinner?'locked':''}" ${finalWinner?'':`onclick="setFinalWinner('${bye}')"`}>${NAMES[bye]}</div>
+          <div class="bracket-player ${finalWinner===bye?'winner':''} ${finalWinner?'locked':''}" ${finalWinner?'':`onclick="recordBo3Game('final','${bye}')"`}>${NAMES[bye]}</div>
         </div>
+        ${fGames.length>0 ? `<div class="bo3-score">${NAMES[match1Winner]} ${fGames.filter(g=>g===match1Winner).length} - ${fGames.filter(g=>g===bye).length} ${NAMES[bye]}</div>` : ''}
         ${renderRivalryLine(match1Winner, bye)}
       </div>
+      ${fGames.length>0 ? `<div class="bo3-narration">${bo3Narration(fGames, match1Winner, bye, true)}</div>` : ''}
       ${!finalWinner ? renderDuelBetPanel('final', match1Winner, bye) : ''}
       ` : ''}
     </div>
@@ -5021,7 +5055,7 @@ async function submitScheduleDuel(){
 
 function resetDuel(){
   if(!confirm('¿Reiniciar el temporizador y el combate actual? (no borra el historial de combates ya jugados)')) return;
-  duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
+  duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
   duelWheelRotation = 0;
   finalWheelRotationWinner = 0;
   finalWheelRotationLoser = 0;
@@ -5074,28 +5108,75 @@ function spinWheel(){
   }, 4300);
 }
 
-async function setMatch1Winner(winner){
-  duelState.match1Winner = winner;
-  render();
-  playSound('win');
-  fireConfetti({ count: 70 });
-  const ok = await saveDuelState();
-  if(!ok) queueRetry('duel', saveDuelState);
-  await addTickets(duelState.match1.p1, 5, 'Jugar el Combate 1');
-  await addTickets(duelState.match1.p2, 5, 'Jugar el Combate 1');
-  await resolveDuelBets('match1', winner);
-  render();
+// ---- Narracion de cada juego del BO3 ----
+function bo3Narration(games, p1, p2, isFinal){
+  const winner = games[games.length - 1];
+  const loser = winner === p1 ? p2 : p1;
+  const wins = { [p1]: 0, [p2]: 0 };
+  games.forEach(g => wins[g]++);
+  const gameNum = games.length;
+  const label = isFinal ? 'la Final' : 'el enfrentamiento';
+  const W = NAMES[winner], L = NAMES[loser], P1 = NAMES[p1], P2 = NAMES[p2];
+
+  if(gameNum === 1){
+    const { wins: priorWins, total } = headToHeadTally(p1, p2);
+    const streak = headToHeadStreak(headToHeadMatches(p1, p2));
+    if(total === 0){
+      return `🎬 Es la primera vez en toda la partida que ${P1} y ${P2} se cruzan cara a cara — no hay precedentes, no hay estadísticas que valgan, solo lo que pase ahora mismo sobre el campo de batalla. Y el que se lleva este primer asalto es <strong>${W}</strong>, abriendo el marcador y sembrando la primera duda: ¿arranca aquí el inicio de una rivalidad que va a dar que hablar durante toda la partida?`;
+    }
+    const streakLine = (streak && streak.count >= 2 && streak.winner === winner)
+      ? ` Y no es casualidad: ${W} llega a este cruce con ${streak.count} victorias seguidas contra ${L} en el bolsillo, así que empieza con la moral bien alta.`
+      : (streak && streak.count >= 2 && streak.winner === loser)
+        ? ` Lo curioso es que ${L} venía de ganarle ${streak.count} veces seguidas a ${W} — pero eso, de momento, se queda en el pasado.`
+        : '';
+    return `🥊 Se levanta el telón sobre un nuevo capítulo entre ${P1} y ${P2}, dos entrenadores que ya se conocen de sobra: antes de este cruce el historial general estaba ${P1} ${priorWins[p1]}-${priorWins[p2]} ${P2}, así que aquí nadie empieza de cero. El primer asalto se lo lleva <strong>${W}</strong>, que pone tierra de por medio desde el primer momento.${streakLine} La pregunta ahora es si ${L} tiene respuesta, o si esto se va a poner cuesta arriba muy pronto.`;
+  }
+  if(gameNum === 2){
+    if(wins[winner] === 2){
+      return `🏆 Contundente. <strong>${W}</strong> no ha dejado ni un resquicio de duda y se lleva también el segundo asalto, cerrando ${label} por la vía rápida: <strong>2-0</strong>, y ni siquiera hace falta un tercer juego para saber quién manda aquí. ${L} se queda con la sensación de que esto ha ido más rápido de lo que esperaba, y tendrá que rehacerse antes del siguiente cruce.`;
+    }
+    return `🔥 Aquí no se rinde nadie. Después de perder el primer asalto, <strong>${W}</strong> reacciona con fuerza y empata la eliminatoria a un juego cada uno — el marcador queda <strong>1-1</strong> y, de repente, todo lo jugado hasta ahora deja de tener valor, porque esto se decide en un único juego final: a todo o nada.`;
+  }
+  const closingLine = isFinal
+    ? `Con este triunfo, <strong>${W}</strong> se corona campeón de la semana y se lleva ${label} con todos los honores, dejando a ${L} a las puertas de la gloria por la mínima diferencia posible.`
+    : `Una victoria que sabe distinta cuando hay que sudarla hasta el final — <strong>${W}</strong> avanza a la final, y ${L} tendrá que conformarse con lo que le espere en la ruleta del perdedor.`;
+  return `⚡ Máxima tensión. Después de dos juegos muy reñidos, con el marcador empatado y los nervios a flor de piel, llega el momento de la verdad: el tercer y último juego, el que de verdad importa. Y quien sale con la mano levantada es <strong>${W}</strong>, que se lleva ${label} por <strong>2-1</strong> en el asalto más disputado de los tres. ${closingLine}`;
 }
-async function setFinalWinner(winner){
-  duelState.finalWinner = winner;
+
+async function recordBo3Game(matchKey, gameWinner){
+  const isFinal = matchKey === 'final';
+  const p1 = isFinal ? duelState.match1Winner : duelState.match1.p1;
+  const p2 = isFinal ? duelState.bye : duelState.match1.p2;
+  const gamesKey = isFinal ? 'finalGames' : 'match1Games';
+
+  duelState[gamesKey] = [...(duelState[gamesKey]||[]), gameWinner];
+  const games = duelState[gamesKey];
+  const wins = { [p1]: 0, [p2]: 0 };
+  games.forEach(g => wins[g]++);
+  const matchDecided = wins[p1] === 2 || wins[p2] === 2;
+  const matchWinner = wins[p1] === 2 ? p1 : (wins[p2] === 2 ? p2 : null);
+
+  playSound(matchDecided ? (isFinal ? 'bigwin' : 'win') : 'reelStop');
+  if(matchDecided) fireConfetti({ count: isFinal ? 220 : 70 });
   render();
-  playSound('bigwin');
-  fireConfetti({ count: 220 });
+
+  if(matchDecided){
+    if(isFinal) duelState.finalWinner = matchWinner;
+    else duelState.match1Winner = matchWinner;
+  }
   const ok = await saveDuelState();
   if(!ok) queueRetry('duel', saveDuelState);
-  await addTickets(duelState.match1Winner, 5, 'Jugar la Final');
-  await addTickets(duelState.bye, 5, 'Jugar la Final');
-  await resolveDuelBets('final', winner);
+
+  if(matchDecided){
+    if(isFinal){
+      await addTickets(p1, 5, 'Jugar la Final');
+      await addTickets(p2, 5, 'Jugar la Final');
+    } else {
+      await addTickets(p1, 5, 'Jugar el Combate 1');
+      await addTickets(p2, 5, 'Jugar el Combate 1');
+    }
+    await resolveDuelBets(matchKey, matchWinner);
+  }
   render();
 }
 
@@ -5160,7 +5241,7 @@ async function finishDuel(){
     finalLoser,
     ts: Date.now()
   });
-  duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Winner:null, match1LoserPrize:null, finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
+  duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
   duelWheelRotation = 0;
   finalWheelRotationWinner = 0;
   finalWheelRotationLoser = 0;
@@ -5932,7 +6013,7 @@ async function deleteTradeRecord(id){
     if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing) return; // don't refresh mid-edit or mid-spin
     const changed = await loadAll();
     if(changed) render(); // si no ha cambiado nada, nos ahorramos reconstruir toda la pantalla
-  }, 4000);
+  }, 6000);
 })();
 </script>
 </body>
