@@ -5156,6 +5156,9 @@ function bo3Narration(games, p1, p2, isFinal){
           () => `📼 Aquí no hay historial de esta partida, pero sí de la anterior: en SoulSilver el marcador entre ${P1} y ${P2} quedó ${P1} ${ss[p1]}-${ss[p2]} ${P2}. Con esos números de fondo llega este primer cruce en Kalos, y el primer asalto se lo lleva <strong>${W}</strong> — ¿se repetirá la historia, o esta vez todo empieza de cero de verdad?`,
           () => `📼 Nueva región, viejas cuentas pendientes. ${P1} y ${P2} ya se vieron las caras en SoulSilver (${P1} ${ss[p1]}-${ss[p2]} ${P2}), y aunque aquí el marcador arranca en blanco, ese precedente sigue pesando. El primer asalto en Kalos cae del lado de <strong>${W}</strong>.`,
           () => `📼 Antes de Kalos hubo Johto. Aquella vez terminó ${P1} ${ss[p1]}-${ss[p2]} ${P2}, y aunque el contador de esta partida se pone a cero, el recuerdo no. El primer round de este nuevo capítulo lo gana <strong>${W}</strong> — toca ver si esta rivalidad sigue el mismo guion o le da la vuelta del todo.`,
+          () => `📼 Hay partidas que terminan pero las rivalidades no. En SoulSilver quedó ${P1} ${ss[p1]}-${ss[p2]} ${P2}, y aunque han pasado región, consola y unos cuantos años, ${P1} y ${P2} se vuelven a encontrar. El primer asalto de esta nueva era lo firma <strong>${W}</strong>.`,
+          () => `📼 Los libros de Johto ya tienen un capítulo escrito sobre esto (${P1} ${ss[p1]}-${ss[p2]} ${P2}), pero Kalos empieza su propia historia desde cero. Eso sí, el primer golpe de esta nueva etapa lo da <strong>${W}</strong> — con o sin precedente, hay que ganárselo igual.`,
+          () => `📼 Rivalidad de toda la vida, escenario nuevo. Lo de SoulSilver (${P1} ${ss[p1]}-${ss[p2]} ${P2}) se queda como referencia, pero en Kalos manda lo de hoy — y hoy manda <strong>${W}</strong>, que se adelanta en el primer asalto.`,
         ];
         return pickNarrationVariant('g1_soulsilver', variants)();
       }
@@ -5164,6 +5167,8 @@ function bo3Narration(games, p1, p2, isFinal){
         () => `🎬 Estreno absoluto. ${P1} y ${P2} nunca se habían enfrentado hasta hoy, así que todo lo que pase a partir de ahora se escribe por primera vez. El primer capítulo de esta historia lo firma <strong>${W}</strong>, que se adelanta en el marcador y deja a ${L} con la obligación de responder cuanto antes.`,
         () => `🎬 Sin cartas marcadas, sin favoritos, sin historia previa: ${P1} contra ${P2} tal cual, a las claras. Y el primer golpe sobre la mesa lo pone <strong>${W}</strong> — el resto de la partida dirá si esto era solo el principio.`,
         () => `🎬 Ni una sola vez se habían visto las caras ${P1} y ${P2} antes de hoy. Así que este primer asalto no es solo un punto en el marcador, es el pistoletazo de salida de una rivalidad entera — y quien se lleva ese honor es <strong>${W}</strong>.`,
+        () => `🎬 Dos entrenadores, cero enfrentamientos previos, y una pregunta en el aire: ¿cómo empieza esto? La respuesta la escribe <strong>${W}</strong>, que se lleva el primer asalto y deja a ${L} con la obligación de reaccionar ya mismo, sin tiempo que perder.`,
+        () => `🎬 A veces el primer cruce entre dos rivales no dice nada sobre lo que viene después — y a veces lo dice todo. Habrá que esperar para saberlo, pero de momento el que manda es <strong>${W}</strong>, ganador de un primer asalto que quedará como referencia el resto de la partida.`,
       ];
       return pickNarrationVariant('g1_first', variants)();
     }
@@ -5177,6 +5182,8 @@ function bo3Narration(games, p1, p2, isFinal){
       () => `🥊 Se levanta el telón sobre un nuevo capítulo entre ${P1} y ${P2}, dos entrenadores que ya se conocen de sobra: antes de este cruce el historial general estaba ${P1} ${priorWins[p1]}-${priorWins[p2]} ${P2}, así que aquí nadie empieza de cero. El primer asalto se lo lleva <strong>${W}</strong>, que pone tierra de por medio desde el primer momento.${streakLine} La pregunta ahora es si ${L} tiene respuesta, o si esto se va a poner cuesta arriba muy pronto.`,
       () => `🥊 Otra vez frente a frente. Con un historial de ${P1} ${priorWins[p1]}-${priorWins[p2]} ${P2} antes de este cruce, ni ${P1} ni ${P2} llegan aquí como desconocidos. El que golpea primero es <strong>${W}</strong>, y se pone por delante justo cuando toca.${streakLine} Todo lo demás está por escribir.`,
       () => `🥊 Ya van unas cuantas veces que ${P1} y ${P2} se cruzan en esta partida (${priorWins[p1]}-${priorWins[p2]} antes de hoy), así que aquí ambos saben perfectamente a qué juegan. El primer asalto cae del lado de <strong>${W}</strong>.${streakLine}`,
+      () => `🥊 La rivalidad sigue su curso. Con ${priorWins[p1]}-${priorWins[p2]} en el marcador general antes de este cruce, cada nuevo enfrentamiento entre ${P1} y ${P2} pesa un poco más que el anterior. Y el que abre esta vez es <strong>${W}</strong>.${streakLine}`,
+      () => `🥊 A estas alturas ${P1} y ${P2} podrían recitar de memoria cómo juega el otro (${priorWins[p1]}-${priorWins[p2]} antes de hoy), y aun así el primer asalto sigue siendo una incógnita hasta que se juega. Esta vez la resuelve <strong>${W}</strong>.${streakLine}`,
     ];
     return pickNarrationVariant('g1_history', variants)();
   }
@@ -5186,6 +5193,8 @@ function bo3Narration(games, p1, p2, isFinal){
         () => `🏆 Contundente. <strong>${W}</strong> no ha dejado ni un resquicio de duda y se lleva también el segundo asalto, cerrando ${label} por la vía rápida: <strong>2-0</strong>, y ni siquiera hace falta un tercer juego para saber quién manda aquí. ${L} se queda con la sensación de que esto ha ido más rápido de lo que esperaba, y tendrá que rehacerse antes del siguiente cruce.`,
         () => `🏆 Barrida total. <strong>${W}</strong> repite victoria y se lleva ${label} <strong>2-0</strong>, sin dejar que ${L} entre ni un momento en el combate. A veces la diferencia entre dos entrenadores se nota desde el primer minuto, y hoy ha sido justo eso.`,
         () => `🏆 Sin necesidad de un tercer juego. <strong>${W}</strong> confirma lo que ya apuntaba el primer asalto y cierra ${label} por <strong>2-0</strong> — un resultado limpio, sin discusión posible, que deja a ${L} con deberes pendientes.`,
+        () => `🏆 De principio a fin. <strong>${W}</strong> no ha necesitado un tercer juego para dejar las cosas claras: <strong>2-0</strong> y ${label} resuelto por la vía rápida. ${L} sale del combate sabiendo exactamente en qué tiene que mejorar de cara al próximo cruce.`,
+        () => `🏆 Dominio absoluto de principio a fin. <strong>${W}</strong> se lleva el segundo asalto igual que el primero, y cierra ${label} <strong>2-0</strong> sin necesidad de terceros juegos ni sustos de última hora. Una superioridad que se ha notado desde el primer minuto.`,
       ];
       return pickNarrationVariant('g2_sweep', variants)();
     }
@@ -5193,6 +5202,8 @@ function bo3Narration(games, p1, p2, isFinal){
       () => `🔥 Aquí no se rinde nadie. Después de perder el primer asalto, <strong>${W}</strong> reacciona con fuerza y empata la eliminatoria a un juego cada uno — el marcador queda <strong>1-1</strong> y, de repente, todo lo jugado hasta ahora deja de tener valor, porque esto se decide en un único juego final: a todo o nada.`,
       () => `🔥 Respuesta inmediata. Tras el golpe del primer asalto, <strong>${W}</strong> se rehace y empareja el marcador a <strong>1-1</strong>. Se acabaron los cálculos, las rachas y los precedentes — lo único que queda es un tercer juego a vida o muerte.`,
       () => `🔥 Igualados. <strong>${W}</strong> no estaba dispuesto a dejarse eliminar tan pronto y empata la eliminatoria <strong>1-1</strong>. Todo lo que se decida a partir de ahora se decide en un solo juego, sin margen de error para ninguno de los dos.`,
+      () => `🔥 Nadie se va a casa todavía. <strong>${W}</strong> responde al primer varapalo y pone el marcador <strong>1-1</strong>, obligando a un tercer juego que nadie quería pero que ahora es inevitable. Ahí se va a decidir todo, sin vuelta atrás.`,
+      () => `🔥 Vuelve a estar todo por decidir. Con el marcador <strong>1-1</strong> tras la reacción de <strong>${W}</strong>, los dos primeros juegos quedan reducidos a un simple trámite — lo único que importa a partir de ahora es lo que pase en el tercero.`,
     ];
     return pickNarrationVariant('g2_tied', variants)();
   }
@@ -5203,6 +5214,8 @@ function bo3Narration(games, p1, p2, isFinal){
     () => `⚡ Máxima tensión. Después de dos juegos muy reñidos, con el marcador empatado y los nervios a flor de piel, llega el momento de la verdad: el tercer y último juego, el que de verdad importa. Y quien sale con la mano levantada es <strong>${W}</strong>, que se lleva ${label} por <strong>2-1</strong> en el asalto más disputado de los tres. ${closingLine}`,
     () => `⚡ Todo o nada. Un juego, sin red de seguridad, decide ${label} entera — y en el momento más caliente de los tres, aparece <strong>${W}</strong> para llevarse el <strong>2-1</strong> definitivo. ${closingLine}`,
     () => `⚡ El desempate más difícil de leer, resuelto de la forma más justa: jugándolo. <strong>${W}</strong> se impone en el tercer y decisivo asalto y cierra ${label} <strong>2-1</strong>. ${closingLine}`,
+    () => `⚡ Aquí no hay margen para dudas ni para excusas — el tercer juego es el que cuenta, y punto. <strong>${W}</strong> aguanta la presión mejor que nadie y se lleva ${label} <strong>2-1</strong>, en el desenlace más ajustado posible. ${closingLine}`,
+    () => `⚡ Empate, tensión, y un solo juego para romperlo. Después de ida y vuelta, es <strong>${W}</strong> quien mantiene la cabeza fría cuando más falta hacía, cerrando ${label} por <strong>2-1</strong>. ${closingLine}`,
   ];
   return pickNarrationVariant('g3_decisive'+(isFinal?'_final':''), variants)();
 }
