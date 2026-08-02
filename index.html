@@ -2420,7 +2420,13 @@ async function loadAll(){
   loteria = loteriaResult;
   TRAINERS.forEach((t, i) => { collections[t] = collectionResults[i].pids || {}; });
   TRAINERS.forEach((t, i) => { graveyard[t] = graveyardResults[i] || []; });
-  TRAINERS.forEach((t, i) => { manualFainted[t] = manualFaintedResults[i] || []; });
+  TRAINERS.forEach((t, i) => {
+    const raw = manualFaintedResults[i];
+    // compatibilidad: el formato viejo era un array de pids (todos forzados a
+    // "muerto"); el nuevo es un mapa pid -> true/false (fuerza en cualquier
+    // sentido). Si lo que llega es un array, lo convertimos sobre la marcha.
+    manualFainted[t] = Array.isArray(raw) ? Object.fromEntries(raw.map(pid=>[pid, true])) : (raw || {});
+  });
   loaded = true;
 
   // Firma exacta de todo el estado aplicado. Comparamos con la anterior para
@@ -2804,11 +2810,11 @@ function overCapMonsOf(t){
 // Sirve tanto para "ver un Pokémon en detalle" como para "elegir con cuál ofertar".
 function allMonsOf(t){
   if(_allMonsCache[t]) return _allMonsCache[t];
-  const manualSet = new Set(manualFainted[t]||[]);
+  const manualMap = manualFainted[t]||{};
   const team = (teams[t]||[]).map(p => ({
     pid: p.pid, nickname: p.nickname, speciesName: p.species, sprite: p.sprite,
     level: p.level, metLocationName: p.metLocationName || null, metLevel: p.metLevel,
-    fainted: !!p.fainted || manualSet.has(p.pid), inTeam: true,
+    fainted: manualMap.hasOwnProperty(p.pid) ? manualMap[p.pid] : !!p.fainted, inTeam: true,
     abilityName: p.abilityName || null, shiny: !!p.shiny,
   }));
   const teamPids = new Set(team.map(m=>m.pid));
@@ -2817,7 +2823,7 @@ function allMonsOf(t){
     .map(([pid, m]) => ({
       pid, nickname: m.nickname || m.speciesName, speciesName: m.speciesName, sprite: m.sprite,
       level: null, metLocationName: m.metLocationName || null, metLevel: m.metLevel,
-      fainted: !!m.fainted || manualSet.has(pid), inTeam: false, box: m.box || null, boxName: m.boxName || null,
+      fainted: manualMap.hasOwnProperty(pid) ? manualMap[pid] : !!m.fainted, inTeam: false, box: m.box || null, boxName: m.boxName || null,
       abilityName: m.abilityName || null, shiny: !!m.shiny,
     }));
   _allMonsCache[t] = [...team, ...boxMons];
@@ -5846,11 +5852,11 @@ function openPokemonDetail(ownerTrainer, pid){
 }
 
 async function toggleManualFainted(trainer, pid){
-  const set = new Set(manualFainted[trainer]||[]);
   const mon = allMonsOf(trainer).find(m=>m.pid===pid);
   if(!mon) return;
-  if(mon.fainted) set.delete(pid); else set.add(pid);
-  manualFainted[trainer] = Array.from(set);
+  const map = { ...(manualFainted[trainer]||{}) };
+  map[pid] = !mon.fainted; // fuerza el estado contrario al que se ve ahora, sea de donde sea que venga
+  manualFainted[trainer] = map;
   closeModal();
   render();
   const ok = await storeSet('x:manualFainted:'+trainer, manualFainted[trainer]);
