@@ -4860,7 +4860,7 @@ function renderWheelAndBracket(){
         <div class="bracket-bye">${NAMES[bye]} pasa directo a la final</div>
       </div>
 
-      ${m1Games.length>0 ? `<div class="bo3-narration">${bo3Narration(m1Games, match1.p1, match1.p2, false)}<div class="bo3-reader-note">🎙️ Lo tiene que leer el que no está combatiendo</div></div>` : ''}
+      ${m1Games.length>0 ? `<div class="bo3-narration">${duelState.match1Narration || bo3Narration(m1Games, match1.p1, match1.p2, false)}<div class="bo3-reader-note">🎙️ Lo tiene que leer el que no está combatiendo</div></div>` : ''}
 
       ${!match1Winner ? renderDuelBetPanel('match1', match1.p1, match1.p2) : ''}
 
@@ -4877,7 +4877,7 @@ function renderWheelAndBracket(){
         ${fGames.length>0 ? `<div class="bo3-score">${NAMES[match1Winner]} ${fGames.filter(g=>g===match1Winner).length} - ${fGames.filter(g=>g===bye).length} ${NAMES[bye]}</div>` : ''}
         ${renderRivalryLine(match1Winner, bye)}
       </div>
-      ${fGames.length>0 ? `<div class="bo3-narration">${bo3Narration(fGames, match1Winner, bye, true)}<div class="bo3-reader-note">🎙️ Lo tiene que leer el que no está combatiendo</div></div>` : ''}
+      ${fGames.length>0 ? `<div class="bo3-narration">${duelState.finalNarration || bo3Narration(fGames, match1Winner, bye, true)}<div class="bo3-reader-note">🎙️ Lo tiene que leer el que no está combatiendo</div></div>` : ''}
       ${!finalWinner ? renderDuelBetPanel('final', match1Winner, bye) : ''}
       ` : ''}
     </div>
@@ -5259,6 +5259,11 @@ async function recordBo3Game(matchKey, gameWinner){
   games.forEach(g => wins[g]++);
   const matchDecided = wins[p1] === 2 || wins[p2] === 2;
   const matchWinner = wins[p1] === 2 ? p1 : (wins[p2] === 2 ? p2 : null);
+
+  // La narracion se calcula UNA sola vez aqui (elige variante al azar) y se
+  // guarda como texto fijo -- si se recalculara en cada render() cambiaria
+  // sola cada pocos segundos y no daria tiempo a leerla.
+  duelState[isFinal ? 'finalNarration' : 'match1Narration'] = bo3Narration(games, p1, p2, isFinal);
 
   playSound(matchDecided ? (isFinal ? 'bigwin' : 'win') : 'reelStop');
   if(matchDecided) fireConfetti({ count: isFinal ? 220 : 70 });
@@ -6114,7 +6119,7 @@ async function deleteTradeRecord(id){
   render();
   showNewsPopupIfAny();
   setInterval(async ()=>{
-    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing) return; // don't refresh mid-edit or mid-spin
+    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing || finalWheelSpinningWinner || finalWheelSpinningLoser || match1LoserWheelSpinning || sancionWheelSpinning) return; // don't refresh mid-edit or mid-spin
     const changed = await loadAll();
     if(changed) render(); // si no ha cambiado nada, nos ahorramos reconstruir toda la pantalla
   }, 6000);
