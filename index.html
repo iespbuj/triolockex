@@ -2374,8 +2374,17 @@ async function storeSet(key, val){
   return false;
 }
 
-let profileSaveInFlight = {}; // contador por entrenador: >0 mientras hay un saveProfile() en curso para el
-TRAINERS.forEach(t => profileSaveInFlight[t] = 0);
+let saveInFlight = {}; // clave -> contador: >0 mientras hay un guardado en curso para esa clave.
+                        // Mientras este >0, loadAll() NO pisa esos datos con lo que traiga el
+                        // servidor (podria ser de un instante justo antes de este guardado).
+async function trackedStoreSet(flightKey, storageKey, value){
+  saveInFlight[flightKey] = (saveInFlight[flightKey]||0) + 1;
+  try{
+    return await storeSet(storageKey, value);
+  } finally {
+    saveInFlight[flightKey] = Math.max((saveInFlight[flightKey]||1) - 1, 0);
+  }
+}
 
 async function loadAll(){
   const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, duelBetsResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
@@ -2393,7 +2402,7 @@ async function loadAll(){
     Promise.all(TRAINERS.map(t => storeGet('x:manualFainted:'+t, [])))
   ]);
   TRAINERS.forEach((t, i) => {
-    if(profileSaveInFlight[t] > 0){
+    if(saveInFlight['profile:'+t] > 0){
       // hay un cambio tuyo (apuesta, premio, vida...) guardandose ahora mismo para
       // este entrenador: NO lo piso con lo que venga del servidor, que puede ser
       // de un instante justo antes de ese cambio. Se aplicará solo en el próximo
@@ -2410,17 +2419,17 @@ async function loadAll(){
     locationName[t] = profileResults[i].locationName || null;
   });
   history = historyResult;
-  tradesActive = tradesResult.active;
-  tradesHistory = tradesResult.history;
-  duelState = duelResult;
-  duelHistory = duelHistoryResult;
-  duelBets = duelBetsResult;
-  normas = normasResult;
-  sancionState = sancionResult;
-  loteria = loteriaResult;
+  if(!saveInFlight['trades']){ tradesActive = tradesResult.active; tradesHistory = tradesResult.history; }
+  if(!saveInFlight['duel']) duelState = duelResult;
+  if(!saveInFlight['duelHistory']) duelHistory = duelHistoryResult;
+  if(!saveInFlight['duelBets']) duelBets = duelBetsResult;
+  if(!saveInFlight['normas']) normas = normasResult;
+  if(!saveInFlight['sancion']) sancionState = sancionResult;
+  if(!saveInFlight['loteria']) loteria = loteriaResult;
   TRAINERS.forEach((t, i) => { collections[t] = collectionResults[i].pids || {}; });
   TRAINERS.forEach((t, i) => { graveyard[t] = graveyardResults[i] || []; });
   TRAINERS.forEach((t, i) => {
+    if(saveInFlight['manualFainted:'+t] > 0) return;
     const raw = manualFaintedResults[i];
     // compatibilidad: el formato viejo era un array de pids (todos forzados a
     // "muerto"); el nuevo es un mapa pid -> true/false (fuerza en cualquier
@@ -2442,12 +2451,7 @@ async function loadAll(){
   return changed;
 }
 async function saveProfile(t){
-  profileSaveInFlight[t] = (profileSaveInFlight[t]||0) + 1;
-  try{
-    return await storeSet('x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, money: money[t]||0, badges: badgesRaw[t]||0, locationName: locationName[t]||null });
-  } finally {
-    profileSaveInFlight[t] = Math.max((profileSaveInFlight[t]||1) - 1, 0);
-  }
+  return await trackedStoreSet('profile:'+t, 'x:profile:'+t, { hearts: hearts[t], team: teams[t], tickets: tickets[t]||0, pendingPrizes: pendingPrizes[t]||[], dailyBonusDate: dailyBonusDate[t]||null, money: money[t]||0, badges: badgesRaw[t]||0, locationName: locationName[t]||null });
 }
 
 
@@ -2466,16 +2470,16 @@ async function checkDailyBonus(t){
   if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
 }
 async function saveTrades(){
-  return await storeSet('x:trades', { active: tradesActive, history: tradesHistory });
+  return await trackedStoreSet('trades', 'x:trades', { active: tradesActive, history: tradesHistory });
 }
 async function saveDuelState(){
-  return await storeSet('x:duel', duelState);
+  return await trackedStoreSet('duel', 'x:duel', duelState);
 }
 async function saveDuelHistory(){
-  return await storeSet('x:duelHistory', duelHistory);
+  return await trackedStoreSet('duelHistory', 'x:duelHistory', duelHistory);
 }
 async function saveDuelBets(){
-  return await storeSet('x:duelBets', duelBets);
+  return await trackedStoreSet('duelBets', 'x:duelBets', duelBets);
 }
 
 const DUEL_BET_CHIPS = [5, 10, 20, 50];
@@ -2553,7 +2557,7 @@ async function resolveDuelBets(matchKey, winner){
 }
 
 async function saveNormas(){
-  return await storeSet('x:normas', normas);
+  return await trackedStoreSet('normas', 'x:normas', normas);
 }
 async function seedDefaultNormasIfMissing(){
   const defaultTextsSet = new Set(DEFAULT_NORMAS);
@@ -2583,10 +2587,10 @@ async function seedDefaultNormasIfMissing(){
   if(!ok) queueRetry('normas', saveNormas);
 }
 async function saveSancion(){
-  return await storeSet('x:sancion', sancionState);
+  return await trackedStoreSet('sancion', 'x:sancion', sancionState);
 }
 async function saveLoteria(){
-  return await storeSet('x:loteria', loteria);
+  return await trackedStoreSet('loteria', 'x:loteria', loteria);
 }
 
 function fmtTime(ts){
@@ -2730,6 +2734,50 @@ async function removePendingPrize(t, id){
   render();
   const ok = await saveProfile(t);
   if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
+}
+
+function openGiftPrize(fromTrainer, id){
+  const prize = (pendingPrizes[fromTrainer]||[]).find(p=>p.id===id);
+  if(!prize) return;
+  const others = TRAINERS.filter(t=>t!==fromTrainer);
+  openModal(`
+    <h3>🎁 Regalar premio</h3>
+    <div style="font-size:13px;color:var(--silver-dim);margin-bottom:12px;">"${prize.text}" <span style="opacity:.7;">(${prize.source})</span></div>
+    <div class="field">
+      <label>¿A quién se lo regalas?</label>
+      <select id="gift-target-select">
+        ${others.map(t=>`<option value="${t}">${NAMES[t]}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Cancelar</button>
+      <button class="primary" onclick="confirmGiftPrize('${fromTrainer}','${id}')">Regalar</button>
+    </div>
+  `);
+}
+async function confirmGiftPrize(fromTrainer, id){
+  const targetSel = document.getElementById('gift-target-select');
+  if(!targetSel) return;
+  const target = targetSel.value;
+  const prize = (pendingPrizes[fromTrainer]||[]).find(p=>p.id===id);
+  if(!prize) return;
+
+  pendingPrizes[fromTrainer] = (pendingPrizes[fromTrainer]||[]).filter(p=>p.id!==id);
+  pendingPrizes[target] = pendingPrizes[target] || [];
+  pendingPrizes[target].unshift({
+    id: crypto.randomUUID(),
+    text: prize.text,
+    source: `${prize.source} (regalo de ${NAMES[fromTrainer]})`,
+    ts: Date.now(),
+  });
+  pushHistory(`🎁 ${NAMES[fromTrainer]} le regaló "${prize.text}" a ${NAMES[target]}`);
+  closeModal();
+  render();
+
+  const ok1 = await saveProfile(fromTrainer);
+  if(!ok1) queueRetry('profile:'+fromTrainer, ()=>saveProfile(fromTrainer));
+  const ok2 = await saveProfile(target);
+  if(!ok2) queueRetry('profile:'+target, ()=>saveProfile(target));
 }
 
 // Aplica un premio de ruleta al ganador/perdedor: si es "N tickets" se suma solo al saldo,
@@ -3020,7 +3068,8 @@ function renderProfile(app, t){
           <div>
             <div class="n-text">${p.text}</div>
             <div class="n-meta mono">${p.source} · ${fmtTime(p.ts)}</div>
-            <div style="text-align:right;">
+            <div style="text-align:right;display:flex;gap:8px;justify-content:flex-end;">
+              <button class="ghost" onclick="openGiftPrize('${t}','${p.id}')">🎁 Regalar</button>
               <button class="danger-outline" onclick="removePendingPrize('${t}','${p.id}')">Eliminar (entregado)</button>
             </div>
           </div>
@@ -5864,8 +5913,8 @@ async function toggleManualFainted(trainer, pid){
   manualFainted[trainer] = map;
   closeModal();
   render();
-  const ok = await storeSet('x:manualFainted:'+trainer, manualFainted[trainer]);
-  if(!ok) queueRetry('manualFainted:'+trainer, ()=>storeSet('x:manualFainted:'+trainer, manualFainted[trainer]));
+  const ok = await trackedStoreSet('manualFainted:'+trainer, 'x:manualFainted:'+trainer, manualFainted[trainer]);
+  if(!ok) queueRetry('manualFainted:'+trainer, ()=>trackedStoreSet('manualFainted:'+trainer, 'x:manualFainted:'+trainer, manualFainted[trainer]));
 }
 
 const ABILITY_REVEAL_COST = 20;
