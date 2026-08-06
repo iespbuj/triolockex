@@ -1247,6 +1247,7 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
   background: #05060a; border-radius: 14px; padding: 18px 10px;
   border: 2px solid var(--panel-2); box-shadow: inset 0 0 25px rgba(0,0,0,0.6);
   display:flex; align-items:center; justify-content:center; gap: 10px;
+  transition: box-shadow .3s ease;
 }
 .slot-reel{
   width: 78px; height: 92px; border-radius: 10px;
@@ -1262,7 +1263,6 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 .slot-reel.landed{ animation: reelLand .38s cubic-bezier(.34,1.56,.64,1); }
 @keyframes reelLand{ 0%{ transform: scale(1.35); } 60%{ transform: scale(0.92); } 100%{ transform: scale(1); } }
 
-.slot-screen{ transition: box-shadow .3s ease; }
 .slot-screen.win-glow{ box-shadow: inset 0 0 25px rgba(0,0,0,0.6), 0 0 26px rgba(255,225,79,0.55); animation: screenPulse .7s ease-in-out infinite; }
 @keyframes screenPulse{ 0%,100%{ box-shadow: inset 0 0 25px rgba(0,0,0,0.6), 0 0 16px rgba(255,225,79,0.4); } 50%{ box-shadow: inset 0 0 25px rgba(0,0,0,0.6), 0 0 34px rgba(255,225,79,0.85); } }
 .slot-cabinet.jackpot-shake{ animation: cabinetShake .4s ease-in-out 2; }
@@ -2419,7 +2419,7 @@ async function loadAll(){
     badgesRaw[t] = profileResults[i].badges || 0;
     locationName[t] = profileResults[i].locationName || null;
   });
-  history = historyResult;
+  if(!saveInFlight['history']) history = historyResult;
   if(!saveInFlight['trades']){ tradesActive = tradesResult.active; tradesHistory = tradesResult.history; }
   if(!saveInFlight['duel']) duelState = duelResult;
   if(!saveInFlight['duelHistory']) duelHistory = duelHistoryResult;
@@ -2665,7 +2665,7 @@ window.addEventListener('beforeunload', (e)=>{
 function pushHistory(text){
   history.unshift({id: crypto.randomUUID(), text, ts: Date.now()});
   history = history.slice(0, 300);
-  storeSet('x:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>storeSet('x:history', history)); });
+  trackedStoreSet('history', 'x:history', history).then(ok=>{ if(!ok) queueRetry('history', ()=>trackedStoreSet('history', 'x:history', history)); });
 }
 
 /* ---- Popup de novedades al abrir la web: solo una vez, luego no vuelve a
