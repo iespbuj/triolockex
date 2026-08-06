@@ -2049,8 +2049,8 @@ const WIN_REACTIONS = [
 const TRAINERS = ['iker','joel','alex'];
 const NAMES = { iker:'Iker', joel:'Joel', alex:'Alex' };
 
-const LOSER_PRIZES = ['1 captura extra', '1 Menta de Naturaleza', '5 tickets', '10 tickets', 'Banda Focus', 'Pesa Recia', 'Baya Meloc', 'Pierde 3 vidas', 'Pierde 1 vida', 'Nada'];
-const WINNER_PRIZES = ['2 capturas extra', 'Elegir entre 3 huevos', '2 Mentas de Naturaleza', '10 tickets', '20 tickets', 'Permiso para una ilegalidad', 'Cambiar un Pokémon por otro que quiera de otro equipo'];
+const LOSER_PRIZES = ['1 captura extra', '1 Menta de Naturaleza', '5 tickets', '10 tickets', 'Banda Focus', 'Pesa Recia', 'Baya Meloc', 'Pierde 3 vidas', 'Pierde 1 vida', '1 Cápsula Habilidad', 'Nada'];
+const WINNER_PRIZES = ['2 capturas extra', 'Elegir entre 3 huevos', '2 Mentas de Naturaleza', '10 tickets', '20 tickets', 'Permiso para una ilegalidad', 'Cambiar un Pokémon por otro que quiera de otro equipo', '3 Cápsulas Habilidad'];
 const WHEEL_COLORS = ['#9fb2da','#c9a86a','#c9cfdd','#7d97c9','#e0c68a','#b8bfd1','#8fa8d6','#d18aa0'];
 
 const SANCION_WHEEL = [
@@ -2128,12 +2128,13 @@ const SLOT_FILLER_SYMBOLS = ['🍒','🔔','🍋','⭐'];
 // Bajada pedida por el grupo: todo a 1% salvo la maldicion (5%), para frenar
 // el farmeo -- la inmensa mayoria de tiradas no deberian dar nada.
 const SLOT_OUTCOMES = [
-  { type:'jackpot', symbol:'👑', chance:0.01, label:'¡JACKPOT! Legendario' },
-  { type:'capture', symbol:'🎁', chance:0.01, label:'1 captura extra' },
-  { type:'egg',     symbol:'🥚', chance:0.01, label:'Huevo random' },
-  { type:'revive',  symbol:'❤️‍🩹', chance:0.01, label:'Revivir un Pokémon muerto a elegir' },
-  { type:'curse',   symbol:'💀', chance:0.05, label:'Pierdes 2 tickets extra' },
-  { type:'nothing', symbol:null, chance:0.91, label:'Nada, sigue intentándolo' }
+  { type:'jackpot', symbol:'👑', chance:0.001, label:'¡JACKPOT! Legendario' },
+  { type:'capture', symbol:'🎁', chance:0.001, label:'1 captura extra' },
+  { type:'egg',     symbol:'🥚', chance:0.001, label:'Huevo random' },
+  { type:'revive',  symbol:'❤️‍🩹', chance:0.001, label:'Revivir un Pokémon muerto a elegir' },
+  { type:'capsule', symbol:'💊', chance:0.001, label:'Cápsula Habilidad' },
+  { type:'curse',   symbol:'💀', chance:0.05, label:'Pierdes 5 tickets extra' },
+  { type:'nothing', symbol:null, chance:0.945, label:'Nada, sigue intentándolo' }
 ];
 
 // Frases del Charizard crupier al entrar al casino — se elige una al azar cada vez
@@ -3553,7 +3554,7 @@ function renderSlotMachine(id){
         <div class="slot-result ${slotResultClass||''}" id="slot-result">${slotResultText||''}</div>
 
         <div class="slot-paytable">
-          ${SLOT_OUTCOMES.filter(o=>o.symbol).map(o=>`<div class="slot-paytable-item"><span>${o.symbol}${o.symbol}${o.symbol}</span><span>${o.label}</span><span>${(o.chance*100).toFixed(0)}%</span></div>`).join('')}
+          ${SLOT_OUTCOMES.filter(o=>o.symbol).map(o=>`<div class="slot-paytable-item"><span>${o.symbol}${o.symbol}${o.symbol}</span><span>${o.label}</span><span>${o.chance < 0.01 ? (o.chance*100).toFixed(1) : (o.chance*100).toFixed(0)}%</span></div>`).join('')}
         </div>
       </div>
     </div>
@@ -3702,11 +3703,19 @@ async function resolveSingleSlotOutcome(machineId, outcome){
     fireConfetti({ count: 90 });
     await addPendingPrize(casinoPlayer, '1 captura extra', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
     render();
+  } else if(outcome.type === 'capsule'){
+    slotResultText = `💊 ¡Cápsula Habilidad! ${pickLine(WIN_REACTIONS)}`;
+    slotResultClass = 'win';
+    if(screenEl) screenEl.classList.add('win-glow');
+    playSound('win');
+    fireConfetti({ count: 90 });
+    await addPendingPrize(casinoPlayer, 'Cápsula Habilidad', 'Tragaperras · ' + SLOT_MACHINES.find(m=>m.id===machineId).name);
+    render();
   } else if(outcome.type === 'curse'){
-    slotResultText = `💀 Mala suerte, pierdes 2 tickets extra. ${pickLine(LOSE_REACTIONS)}`;
+    slotResultText = `💀 Mala suerte, pierdes 5 tickets extra. ${pickLine(LOSE_REACTIONS)}`;
     slotResultClass = 'lose';
     playSound('curse');
-    await addTickets(casinoPlayer, -2, 'Mala suerte en la tragaperras');
+    await addTickets(casinoPlayer, -5, 'Mala suerte en la tragaperras');
     render();
   } else {
     slotResultText = `Sin premio esta vez. ${pickLine(LOSE_REACTIONS)}`;
@@ -3726,20 +3735,22 @@ async function resolveMultiSlotOutcomes(machineId, outcomes){
   const captureCount = tally.capture || 0;
   const eggCount = tally.egg || 0;
   const reviveCount = tally.revive || 0;
+  const capsuleCount = tally.capsule || 0;
 
   // Aplicar efectos agregados (secuencial para no pisarse entre tickets/premios)
   for(let i=0;i<captureCount;i++) await addPendingPrize(casinoPlayer, '1 captura extra', 'Tragaperras x' + slotMultiplier + ' · ' + machine.name);
   for(let i=0;i<eggCount;i++) await addPendingPrize(casinoPlayer, 'Huevo random', 'Tragaperras x' + slotMultiplier + ' · ' + machine.name);
   for(let i=0;i<reviveCount;i++) await addPendingPrize(casinoPlayer, 'Revivir un Pokémon muerto a elegir', 'Tragaperras x' + slotMultiplier + ' · ' + machine.name);
-  if(curseCount > 0) await addTickets(casinoPlayer, -2*curseCount, `Mala suerte x${curseCount} en la tragaperras`);
+  for(let i=0;i<capsuleCount;i++) await addPendingPrize(casinoPlayer, 'Cápsula Habilidad', 'Tragaperras x' + slotMultiplier + ' · ' + machine.name);
+  if(curseCount > 0) await addTickets(casinoPlayer, -5*curseCount, `Mala suerte x${curseCount} en la tragaperras`);
 
   if(jackpotCount > 0) fireConfetti({ count: 180 });
-  playSound(jackpotCount>0 ? 'jackpot' : (captureCount+eggCount+reviveCount)>0 ? 'win' : 'lose');
+  playSound(jackpotCount>0 ? 'jackpot' : (captureCount+eggCount+reviveCount+capsuleCount)>0 ? 'win' : 'lose');
 
-  const order = ['jackpot','revive','egg','capture','curse','nothing'];
+  const order = ['jackpot','revive','capsule','egg','capture','curse','nothing'];
   const rows = order.filter(t => tally[t] > 0).map(t=>{
     const def = SLOT_OUTCOMES.find(o=>o.type===t);
-    const extra = t==='curse' ? ` (−${2*tally[t]} tickets)` : '';
+    const extra = t==='curse' ? ` (−${5*tally[t]} tickets)` : '';
     return `<div class="news-item"><span class="news-text">${def.symbol||'❌'} ${def.label}${extra}</span><span class="news-time">x${tally[t]}</span></div>`;
   }).join('');
 
