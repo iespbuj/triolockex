@@ -1233,6 +1233,20 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 
 .slot-title{ font-family:'Rajdhani',sans-serif; font-weight:700; font-size:19px; letter-spacing:2px; color: var(--silver-bright); margin-bottom: 4px; }
 .slot-sub{ font-size: 11px; color: var(--silver-dim); margin-bottom: 18px; letter-spacing:.5px; }
+
+.egg-wheel-display-wrap{
+  width: 160px; height: 160px; margin: 0 auto 14px;
+  background: radial-gradient(circle at 50% 35%, var(--accent-dim) 0%, #05060a 75%);
+  border: 3px solid var(--panel-2); border-radius: 20px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: inset 0 0 25px rgba(0,0,0,0.6);
+  overflow:hidden;
+}
+.egg-wheel-display-wrap img{ width: 128px; height:128px; image-rendering:pixelated; filter: drop-shadow(0 6px 10px rgba(0,0,0,.4)); }
+.egg-wheel-name{
+  text-align:center; font-family:'Rajdhani',sans-serif; font-weight:800; font-size:16px;
+  color: var(--silver-bright); letter-spacing:.5px; margin-bottom: 16px; min-height:22px;
+}
 .slot-multiplier-row{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px; }
 .slot-mult-btn{
   background: var(--panel); border:1px solid var(--border); color: var(--silver-dim);
@@ -2290,6 +2304,8 @@ let nineDealing = false;
 const LOTERIA_TICKET_COST = 10;
 let loteria = { pot: 0, entries: [], history: [] }; // entries: [{id, trainer, ts}]
 let loteriaDrawing = false;
+let eggWheelSpinning = false;
+let eggWheelResult = null; // {id, name} del ultimo resultado, o null si no se ha girado
 const LOTERIA_COLORS = { iker: 'var(--neon-cyan)', joel: 'var(--neon-pink)', alex: 'var(--neon-yellow)' };
 function loteriaColorFor(t){ return LOTERIA_COLORS[t] || WHEEL_COLORS[TRAINERS.indexOf(t)%WHEEL_COLORS.length]; }
 
@@ -2852,7 +2868,7 @@ function currentLevelCap(t){
 function overCapMonsOf(t){
   const cap = currentLevelCap(t);
   if (!cap) return [];
-  return (teams[t]||[]).filter(p => !p.fainted && p.level != null && p.level > cap.cap);
+  return allMonsOf(t).filter(m => m.inTeam && !m.fainted && m.level != null && m.level > cap.cap);
 }
 // Todos los Pokémon de un entrenador: equipo (con su flag de debilitado real)
 // + los que estén en cajas (nunca debilitados, eso solo existe en equipo).
@@ -3089,13 +3105,14 @@ function renderProfile(app, t){
       ${Array.from({length:6}).map((_,i)=>{
         const p = teams[t][i];
         if(p){
+          const isFainted = (allMonsOf(t).find(m=>m.pid===p.pid) || p).fainted;
           return `
-          <div class="poke-slot${p.fainted ? ' fainted' : ''}" onclick="openPokemonDetail('${t}','${p.pid}')" style="cursor:pointer;">
+          <div class="poke-slot${isFainted ? ' fainted' : ''}" onclick="openPokemonDetail('${t}','${p.pid}')" style="cursor:pointer;">
             ${p.level != null ? `<div class="poke-level">Nv.${p.level}</div>` : ''}
             <img loading="lazy" src="${p.sprite}" alt="${p.species}">
             <div class="poke-nick">${p.nickname}</div>
             <div class="poke-species">${p.species.replace(/-/g,' ')}</div>
-            ${p.fainted ? `<div class="poke-fainted-tag">💀 Debilitado</div>` : ''}
+            ${isFainted ? `<div class="poke-fainted-tag">💀 Debilitado</div>` : ''}
           </div>`;
         }
         return `<div class="poke-slot empty">Vacío</div>`;
@@ -3387,6 +3404,16 @@ function renderCasinoFloor(){
             </div>
           </div>
         </div>
+        <div class="hall-card g-eggwheel" onclick="openCasinoZone('eggwheel')">
+          <div class="hall-card-border">
+            <div class="hall-card-inner">
+              <div class="hall-card-icon">🥚</div>
+              <div class="hall-card-title">Sorteo Pokémon</div>
+              <div class="hall-card-sub">Los 721, al azar</div>
+              <div class="hall-card-bulbs">${Array.from({length:5}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="casino-floor-hint">Elige una zona para entrar</div>
@@ -3403,6 +3430,7 @@ function openCasinoZone(tab){
   else if(tab==='loteria') casinoModeLine = pickLine(LOTERIA_LINES);
   else if(tab==='blackjack'){ casinoModeLine = pickLine(BLACKJACK_LINES); bjState = { phase:'bet', playerCards:[], dealerCards:[], hideDealer:true, resultText:'', resultClass:'' }; }
   else if(tab==='nueve'){ casinoModeLine = pickLine(NINE_LINES); nineState = { phase:'bet', playerCards:[], bankerCards:[], choice:null, resultText:'', resultClass:'' }; }
+  else if(tab==='eggwheel'){ eggWheelResult = null; }
   render();
 }
 
@@ -3430,6 +3458,7 @@ function mascotContext(){
   if(casinoTab==='loteria')  return { img: CHARIZARD_IMG.loteria,  line: casinoModeLine };
   if(casinoTab==='blackjack') return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   if(casinoTab==='nueve')     return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
+  if(casinoTab==='eggwheel')  return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   return null;
 }
 
@@ -3462,7 +3491,7 @@ function renderCasino(app){
       </div>
 
       <div id="casino-content">
-        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : renderLoteriaTab()}
+        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='eggwheel' ? renderEggWheelTab() : renderLoteriaTab()}
       </div>
     `;
   }
@@ -4290,6 +4319,51 @@ function nineUseFreeBet(){
   nineChipValue = v;
   render();
 }
+function renderEggWheelTab(){
+  const shown = eggWheelResult ? eggWheelResult.id : 1;
+  const label = eggWheelResult ? `#${eggWheelResult.id} ${eggWheelResult.name}` : '¿Quién será...?';
+  return `
+    <div class="slot-title">🥚 SORTEO POKÉMON</div>
+    <div class="slot-sub">Gira y sale un Pokémon al azar entre los 721 — para saber qué te toca en un huevo, sin buscar un número random por ahí.</div>
+    <div class="egg-wheel-display-wrap">
+      <img id="egg-wheel-display" loading="lazy" src="${pokedexSpriteUrl(shown)}" alt="?">
+    </div>
+    <div id="egg-wheel-name" class="egg-wheel-name">${label}</div>
+    <div class="bj-action-row">
+      <button class="primary" ${eggWheelSpinning?'disabled':''} onclick="spinEggWheel()">🎡 Girar</button>
+    </div>
+  `;
+}
+async function spinEggWheel(){
+  if(eggWheelSpinning) return;
+  eggWheelSpinning = true;
+  render();
+  playSound('lever');
+  const finalId = Math.floor(Math.random()*721)+1;
+  const totalDuration = 1800;
+  const stepMs = 60;
+  let elapsed = 0;
+  const timer = setInterval(()=>{
+    elapsed += stepMs;
+    const el = document.getElementById('egg-wheel-display');
+    const nameEl = document.getElementById('egg-wheel-name');
+    if(elapsed >= totalDuration){
+      clearInterval(timer);
+      if(el) el.src = pokedexSpriteUrl(finalId);
+      if(nameEl) nameEl.textContent = `#${finalId} ${SPECIES_NAMES[finalId] || '???'}`;
+      eggWheelResult = { id: finalId, name: SPECIES_NAMES[finalId] || `#${finalId}` };
+      eggWheelSpinning = false;
+      playSound('win');
+      fireConfetti({ count: 90 });
+      render();
+      return;
+    }
+    const randId = Math.floor(Math.random()*721)+1;
+    if(el) el.src = pokedexSpriteUrl(randId);
+    if(nameEl) nameEl.textContent = `#${randId} ${SPECIES_NAMES[randId] || '???'}`;
+  }, stepMs);
+}
+
 function renderNineTab(){
   const balance = tickets[casinoPlayer]||0;
   return `
@@ -5207,10 +5281,10 @@ function pickNarrationVariant(category, variants){
 // Elige un Pokémon vivo al azar del equipo de un entrenador, para meterlo en
 // las narraciones. Devuelve {nickname, species} o null si no tiene equipo.
 function pickTeamMon(trainer){
-  const alive = (teams[trainer]||[]).filter(p=>!p.fainted);
+  const alive = allMonsOf(trainer).filter(m=>m.inTeam && !m.fainted);
   if(alive.length === 0) return null;
   const mon = alive[Math.floor(Math.random()*alive.length)];
-  const species = mon.species.replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+  const species = mon.speciesName.replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
   return { nickname: mon.nickname, species };
 }
 
@@ -6179,7 +6253,7 @@ async function deleteTradeRecord(id){
   render();
   showNewsPopupIfAny();
   setInterval(async ()=>{
-    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing || finalWheelSpinningWinner || finalWheelSpinningLoser || match1LoserWheelSpinning || sancionWheelSpinning) return; // don't refresh mid-edit or mid-spin
+    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing || finalWheelSpinningWinner || finalWheelSpinningLoser || match1LoserWheelSpinning || sancionWheelSpinning || eggWheelSpinning) return; // don't refresh mid-edit or mid-spin
     const changed = await loadAll();
     if(changed) render(); // si no ha cambiado nada, nos ahorramos reconstruir toda la pantalla
   }, 6000);
