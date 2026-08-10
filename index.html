@@ -2312,6 +2312,18 @@ function loteriaColorFor(t){ return LOTERIA_COLORS[t] || WHEEL_COLORS[TRAINERS.i
 let duelState = { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null };
 let duelHistory = [];
 let duelBets = { match1: [], final: [] }; // {trainer, pick, amount}[] por combate
+let challengeState = null; // {challenger, opponent, stakeId, stakeMonPid, stakeMonLabel, games:[], narration} o null si no hay ninguno activo
+const CHALLENGE_COST = 25;
+const CHALLENGE_STAKES = [
+  { id:'steal_pokemon', label:'Robar un Pokémon (a elegir)', needsMonPick:true },
+  { id:'all_tickets',   label:'Llevarse todos los tickets del rival', needsMonPick:false },
+  { id:'steal_heart',   label:'Robar 1 vida', needsMonPick:false },
+  { id:'capsules',      label:'5 Cápsulas Habilidad', needsMonPick:false },
+  { id:'mints',         label:'5 Mentas de Naturaleza', needsMonPick:false },
+  { id:'rename',        label:'Cambiar un apodo a un Pokémon del rival (a elegir)', needsMonPick:true },
+  { id:'steal_money',   label:'Robar 100.000 monedas (manual en PKHeX)', needsMonPick:false },
+  { id:'full_restores', label:'2 Restaurar Todo', needsMonPick:false },
+];
 let duelSpinning = false;
 let duelWheelRotation = 0;
 
@@ -2404,13 +2416,14 @@ async function trackedStoreSet(flightKey, storageKey, value){
 }
 
 async function loadAll(){
-  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, duelBetsResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
+  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, duelBetsResult, challengeResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
     storeGet('x:duel', { scheduled:null, picks:[], bye:null, match1:null, match1Games:[], match1Winner:null, match1LoserPrize:null, finalGames:[], finalWinner:null, finalWinnerPrize:null, finalLoserPrize:null }),
     storeGet('x:duelHistory', []),
     storeGet('x:duelBets', { match1: [], final: [] }),
+    storeGet('x:challenge', null),
     storeGet('x:normas', []),
     storeGet('x:sancion', { offender: null, prize: null }),
     storeGet('x:loteria', { pot: 0, entries: [], history: [] }),
@@ -2440,6 +2453,7 @@ async function loadAll(){
   if(!saveInFlight['duel']) duelState = duelResult;
   if(!saveInFlight['duelHistory']) duelHistory = duelHistoryResult;
   if(!saveInFlight['duelBets']) duelBets = duelBetsResult;
+  if(!saveInFlight['challenge']) challengeState = challengeResult;
   if(!saveInFlight['normas']) normas = normasResult;
   if(!saveInFlight['sancion']) sancionState = sancionResult;
   if(!saveInFlight['loteria']) loteria = loteriaResult;
@@ -2460,7 +2474,7 @@ async function loadAll(){
   // ahorrarse el render() (que es caro: reconstruye toda la pantalla).
   const signature = JSON.stringify({
     hearts, teams, tickets, pendingPrizes, dailyBonusDate, money, badgesRaw, locationName,
-    history, tradesActive, tradesHistory, duelState, duelHistory, duelBets,
+    history, tradesActive, tradesHistory, duelState, duelHistory, duelBets, challengeState,
     normas, sancionState, loteria, collections, graveyard, manualFainted,
   });
   const changed = signature !== lastLoadSignature;
@@ -2497,6 +2511,9 @@ async function saveDuelHistory(){
 }
 async function saveDuelBets(){
   return await trackedStoreSet('duelBets', 'x:duelBets', duelBets);
+}
+async function saveChallengeState(){
+  return await trackedStoreSet('challenge', 'x:challenge', challengeState);
 }
 
 const DUEL_BET_CHIPS = [5, 10, 20, 50];
@@ -3099,6 +3116,7 @@ function renderProfile(app, t){
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="ghost" onclick="openImportSave('${t}')">📥 Importar desde save</button>
         <button class="ghost" onclick="openRevealAbility('${t}')">🔓 Revelar habilidad (20 🎟️)</button>
+        <button class="ghost" onclick="openChallenge('${t}')">⚔️ Desafiar (25 🎟️)</button>
       </div>
     </div>
     <div class="team-grid">
@@ -4834,6 +4852,7 @@ function renderDuel(app){
         <p>No hay ningún combate programado esta semana.</p>
         <button class="primary" onclick="openScheduleDuel()">＋ Temporizador</button>
       </div>
+      ${renderChallengeSection()}
       ${renderDuelTallyAndHistory()}
     `;
     return;
@@ -4851,6 +4870,7 @@ function renderDuel(app){
     </div>
 
     ${renderWheelAndBracket()}
+    ${renderChallengeSection()}
     ${renderDuelTallyAndHistory()}
   `;
 
@@ -5148,7 +5168,10 @@ function renderDuelTallyAndHistory(){
       <div class="duel-history-item">
         <div class="dh-name">${d.name}</div>
         <div class="dh-date">${fmtTime(new Date(d.date).getTime())}</div>
-        <div>${NAMES[d.match1.p1]} vs ${NAMES[d.match1.p2]} → ganó ${NAMES[d.match1.winner]} · Final: ${NAMES[d.final.p1]} vs ${NAMES[d.final.p2]} → <span class="dh-champ">campeón ${NAMES[d.champion]}</span></div>
+        <div>${d.isChallenge
+          ? `${NAMES[d.match1.p1]} vs ${NAMES[d.match1.p2]} → <span class="dh-champ">ganó ${NAMES[d.match1.winner]}</span> (desafío 1v1)`
+          : `${NAMES[d.match1.p1]} vs ${NAMES[d.match1.p2]} → ganó ${NAMES[d.match1.winner]} · Final: ${NAMES[d.final.p1]} vs ${NAMES[d.final.p2]} → <span class="dh-champ">campeón ${NAMES[d.champion]}</span>`
+        }</div>
         ${d.match1WinnerReward ? `<div class="dh-reward">🎁 ${NAMES[d.match1.p1]} y ${NAMES[d.match1.p2]} +${d.match1WinnerReward} cada uno por el Combate 1</div>` : ''}
         ${d.match1LoserPrize ? `<div class="dh-reward">💀 ${NAMES[[d.match1.p1, d.match1.p2].find(p=>p!==d.match1.winner)]} → ${d.match1LoserPrize}</div>` : ''}
         ${d.finalWinnerPrize ? `<div class="dh-reward">🏆 ${NAMES[d.champion]} → ${d.finalWinnerPrize}${d.finalLoserPrize && d.finalLoser ? ` · ${NAMES[d.finalLoser]} → ${d.finalLoserPrize}` : ''}</div>` : ''}
@@ -5421,6 +5444,176 @@ async function recordBo3Game(matchKey, gameWinner){
     await resolveDuelBets(matchKey, matchWinner);
   }
   render();
+}
+
+/* ================= DESAFÍOS 1v1 (fuera del bracket semanal) ================= */
+
+function openChallenge(targetTrainer){
+  if(challengeState){
+    openModal(`<h3>⚔️ Desafío</h3><div class="empty-state">Ya hay un desafío en marcha (${NAMES[challengeState.challenger]} vs ${NAMES[challengeState.opponent]}). Termínalo antes de crear otro.</div><div class="modal-actions"><button class="ghost" onclick="closeModal()">Cerrar</button></div>`);
+    return;
+  }
+  const challengers = TRAINERS.filter(t=>t!==targetTrainer);
+  openModal(`
+    <h3>⚔️ Desafiar a ${NAMES[targetTrainer]}</h3>
+    <div style="font-size:12px;color:var(--silver-dim);margin-bottom:12px;">Cuesta ${CHALLENGE_COST} tickets al que desafía. Se juega un BO3 — si gana, se lleva lo apostado. Si pierde, no pasa nada más (los tickets de entrada no se devuelven).</div>
+    <div class="field">
+      <label>¿Quién desafía?</label>
+      <select id="challenge-who-select">
+        ${challengers.map(t=>`<option value="${t}">${NAMES[t]} (${tickets[t]||0} 🎟️)</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label>¿Qué se apuesta?</label>
+      <select id="challenge-stake-select" onchange="renderChallengeMonPicker('${targetTrainer}')">
+        ${CHALLENGE_STAKES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}
+      </select>
+    </div>
+    <div id="challenge-mon-picker"></div>
+    <div class="err-msg" id="challenge-err"></div>
+    <div class="modal-actions">
+      <button class="ghost" onclick="closeModal()">Cancelar</button>
+      <button class="primary" onclick="confirmChallenge('${targetTrainer}')">Desafiar</button>
+    </div>
+  `);
+  renderChallengeMonPicker(targetTrainer);
+}
+function renderChallengeMonPicker(targetTrainer){
+  const stakeId = document.getElementById('challenge-stake-select').value;
+  const stake = CHALLENGE_STAKES.find(s=>s.id===stakeId);
+  const el = document.getElementById('challenge-mon-picker');
+  if(!stake.needsMonPick){ el.innerHTML = ''; return; }
+  const pool = allMonsOf(targetTrainer);
+  if(pool.length === 0){ el.innerHTML = `<div class="table-hint">${NAMES[targetTrainer]} no tiene ningún Pokémon.</div>`; return; }
+  el.innerHTML = `
+    <div class="field">
+      <label>¿Cuál de sus Pokémon?</label>
+      <select id="challenge-mon-select">
+        ${pool.map(m=>`<option value="${m.pid}">${m.nickname} (${m.speciesName.replace(/-/g,' ')}) ${m.inTeam?'· equipo':'· caja'}</option>`).join('')}
+      </select>
+    </div>
+  `;
+}
+async function confirmChallenge(targetTrainer){
+  const challenger = document.getElementById('challenge-who-select').value;
+  const stakeId = document.getElementById('challenge-stake-select').value;
+  const stake = CHALLENGE_STAKES.find(s=>s.id===stakeId);
+  const err = document.getElementById('challenge-err');
+  if((tickets[challenger]||0) < CHALLENGE_COST){
+    err.textContent = `${NAMES[challenger]} no tiene suficientes tickets.`;
+    return;
+  }
+  let stakeMonPid = null, stakeMonLabel = null;
+  if(stake.needsMonPick){
+    const monSel = document.getElementById('challenge-mon-select');
+    if(!monSel){ err.textContent = `${NAMES[targetTrainer]} no tiene ningún Pokémon para apostar.`; return; }
+    stakeMonPid = monSel.value;
+    const mon = allMonsOf(targetTrainer).find(m=>m.pid===stakeMonPid);
+    stakeMonLabel = mon ? `${mon.nickname} (${mon.speciesName.replace(/-/g,' ')})` : null;
+  }
+  await addTickets(challenger, -CHALLENGE_COST, `Desafío contra ${NAMES[targetTrainer]}`);
+  challengeState = {
+    challenger, opponent: targetTrainer, stakeId, stakeMonPid, stakeMonLabel,
+    games: [], narration: null,
+  };
+  pushHistory(`⚔️ ${NAMES[challenger]} ha desafiado a ${NAMES[targetTrainer]} — en juego: ${stake.label}${stakeMonLabel ? ` (${stakeMonLabel})` : ''}`);
+  closeModal();
+  render();
+  const ok = await saveChallengeState();
+  if(!ok) queueRetry('challenge', saveChallengeState);
+}
+
+function renderChallengeSection(){
+  if(!challengeState) return '';
+  const { challenger, opponent, games, stakeId, stakeMonLabel } = challengeState;
+  const stake = CHALLENGE_STAKES.find(s=>s.id===stakeId);
+  const wins = { [challenger]:0, [opponent]:0 };
+  (games||[]).forEach(g=>wins[g]++);
+  const decided = wins[challenger]===2 || wins[opponent]===2;
+  const winner = wins[challenger]===2 ? challenger : (wins[opponent]===2 ? opponent : null);
+  return `
+    <div class="section-label" style="margin-top:24px;">⚔️ Desafío en marcha</div>
+    <div class="bracket-match ${decided?'':'active'}">
+      <div class="match-label">${stake.label}${stakeMonLabel ? ` — ${stakeMonLabel}` : ''} ${games.length>0 && !decided ? `· Juego ${Math.min(games.length+1,3)} de 3` : ''}</div>
+      <div class="bracket-vs">
+        <div class="bracket-player ${winner===challenger?'winner':''} ${decided?'locked':''}" ${decided?'':`onclick="recordChallengeGame('${challenger}')"`}>${NAMES[challenger]}</div>
+        <div class="bracket-vs-sep">VS</div>
+        <div class="bracket-player ${winner===opponent?'winner':''} ${decided?'locked':''}" ${decided?'':`onclick="recordChallengeGame('${opponent}')"`}>${NAMES[opponent]}</div>
+      </div>
+      ${games.length>0 ? `<div class="bo3-score">${NAMES[challenger]} ${wins[challenger]} - ${wins[opponent]} ${NAMES[opponent]}</div>` : ''}
+    </div>
+    ${games.length>0 ? `<div class="bo3-narration">${challengeState.narration || 'Resultado registrado.'}<div class="bo3-reader-note">🎙️ Lo tiene que leer el que no está combatiendo</div></div>` : ''}
+    ${decided ? `<div class="modal-actions" style="justify-content:center;"><button class="primary" onclick="closeChallenge()">Cerrar desafío</button></div>` : ''}
+  `;
+}
+
+async function recordChallengeGame(gameWinner){
+  if(!challengeState) return;
+  const { challenger, opponent } = challengeState;
+  challengeState.games = [...(challengeState.games||[]), gameWinner];
+  const games = challengeState.games;
+  const wins = { [challenger]:0, [opponent]:0 };
+  games.forEach(g=>wins[g]++);
+  const decided = wins[challenger]===2 || wins[opponent]===2;
+  const winner = wins[challenger]===2 ? challenger : (wins[opponent]===2 ? opponent : null);
+
+  challengeState.narration = bo3Narration(games, challenger, opponent, false);
+
+  playSound(decided ? 'win' : 'reelStop');
+  if(decided) fireConfetti({ count: 90 });
+  render();
+
+  if(decided){
+    const loser = winner===challenger ? opponent : challenger;
+    duelHistory.unshift({
+      id: crypto.randomUUID(),
+      name: `Desafío: ${NAMES[challenger]} vs ${NAMES[opponent]}`,
+      date: new Date().toISOString(),
+      match1: { p1: challenger, p2: opponent, winner },
+      final: null,
+      champion: winner,
+      isChallenge: true,
+    });
+    await saveDuelHistory();
+    await resolveChallengeReward(winner, loser);
+  }
+  const ok = await saveChallengeState();
+  if(!ok) queueRetry('challenge', saveChallengeState);
+}
+
+async function resolveChallengeReward(winner, loser){
+  const { stakeId, stakeMonLabel } = challengeState;
+  const src = `Desafío ganado a ${NAMES[loser]}`;
+  if(stakeId === 'all_tickets'){
+    const stolen = tickets[loser]||0;
+    await addTickets(loser, -stolen, `Perdió un desafío contra ${NAMES[winner]}`);
+    await addTickets(winner, stolen, `Ganó un desafío contra ${NAMES[loser]} (+${stolen} tickets robados)`);
+  } else if(stakeId === 'steal_heart'){
+    hearts[loser] = Math.max((hearts[loser]??20) - 1, -1);
+    hearts[winner] = Math.min((hearts[winner]??20) + 1, 20);
+    pushHistory(`💔 ${NAMES[winner]} le robó 1 vida a ${NAMES[loser]} en un desafío (${NAMES[winner]}: ${hearts[winner]}/20, ${NAMES[loser]}: ${hearts[loser]}/20)`);
+    render();
+    const ok1 = await saveProfile(winner); if(!ok1) queueRetry('profile:'+winner, ()=>saveProfile(winner));
+    const ok2 = await saveProfile(loser); if(!ok2) queueRetry('profile:'+loser, ()=>saveProfile(loser));
+  } else if(stakeId === 'capsules'){
+    await addPendingPrize(winner, '5 Cápsulas Habilidad', src);
+  } else if(stakeId === 'mints'){
+    await addPendingPrize(winner, '5 Mentas de Naturaleza', src);
+  } else if(stakeId === 'full_restores'){
+    await addPendingPrize(winner, '2 Restaurar Todo', src);
+  } else if(stakeId === 'steal_money'){
+    await addPendingPrize(winner, 'Robar 100.000 monedas (manual en PKHeX: +100k a ti, -100k a él)', src);
+  } else if(stakeId === 'steal_pokemon'){
+    await addPendingPrize(winner, `Te quedas con ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src);
+  } else if(stakeId === 'rename'){
+    await addPendingPrize(winner, `Puedes ponerle el apodo que quieras a ${stakeMonLabel || 'el Pokémon apostado'} de ${NAMES[loser]}`, src);
+  }
+}
+async function closeChallenge(){
+  challengeState = null;
+  render();
+  const ok = await saveChallengeState();
+  if(!ok) queueRetry('challenge', saveChallengeState);
 }
 
 function spinFinalWheel(role){
