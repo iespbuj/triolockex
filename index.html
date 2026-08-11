@@ -1261,6 +1261,7 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 .hall-card.g-slots .hall-card-bulbs .slot-bulb{ background: var(--neon-pink); box-shadow: 0 0 6px var(--neon-pink); }
 .hall-card.g-roulette .hall-card-bulbs .slot-bulb{ background: var(--neon-cyan); box-shadow: 0 0 6px var(--neon-cyan); }
 .hall-card.g-loteria .hall-card-bulbs .slot-bulb{ background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+.hall-card.g-vida .hall-card-bulbs .slot-bulb{ background: var(--danger); box-shadow: 0 0 6px var(--danger); }
 
 .casino-floor-hint{
   text-align:center; margin-top: 26px; font-size:12px; color: var(--silver-dim); letter-spacing:.5px;
@@ -2304,6 +2305,12 @@ let slotJackpotMachine = null; // si !=null, mostrar la mini-ruleta de legendari
 let slotJackpotQueue = 0; // cuantos jackpots mas quedan por resolver (tiradas x2/x5/x10 con mas de un jackpot)
 let slotJackpotSpinning = false;
 let slotJackpotRotation = 0;
+
+const VIDA_SPIN_COST = 100;
+let vidaSpinning = false;
+let vidaReels = ['❤️','❤️','❤️'];
+let vidaResultText = '';
+let vidaResultClass = '';
 
 const ROULETTE_WHEEL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 const ROULETTE_RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
@@ -3661,6 +3668,16 @@ function renderCasinoFloor(){
             </div>
           </div>
         </div>
+        <div class="hall-card g-vida" onclick="openCasinoZone('vida')">
+          <div class="hall-card-border">
+            <div class="hall-card-inner">
+              <div class="hall-card-icon">❤️</div>
+              <div class="hall-card-title">Tragaperras de la Vida</div>
+              <div class="hall-card-sub">100 tickets · un toque de suerte</div>
+              <div class="hall-card-bulbs">${Array.from({length:5}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
+            </div>
+          </div>
+        </div>
         <div class="hall-card g-eggwheel" onclick="openCasinoZone('eggwheel')">
           <div class="hall-card-border">
             <div class="hall-card-inner">
@@ -3688,6 +3705,7 @@ function openCasinoZone(tab){
   else if(tab==='blackjack'){ casinoModeLine = pickLine(BLACKJACK_LINES); bjState = { phase:'bet', playerCards:[], dealerCards:[], hideDealer:true, resultText:'', resultClass:'' }; }
   else if(tab==='nueve'){ casinoModeLine = pickLine(NINE_LINES); nineState = { phase:'bet', playerCards:[], bankerCards:[], choice:null, resultText:'', resultClass:'' }; }
   else if(tab==='eggwheel'){ eggWheelResult = null; }
+  else if(tab==='vida'){ vidaResultText = ''; vidaResultClass = ''; vidaReels = ['❤️','❤️','❤️']; casinoModeLine = pickLine(SLOT_PICKER_LINES); }
   render();
 }
 
@@ -3716,6 +3734,7 @@ function mascotContext(){
   if(casinoTab==='blackjack') return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   if(casinoTab==='nueve')     return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   if(casinoTab==='eggwheel')  return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
+  if(casinoTab==='vida')      return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   return null;
 }
 
@@ -3748,7 +3767,7 @@ function renderCasino(app){
       </div>
 
       <div id="casino-content">
-        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='eggwheel' ? renderEggWheelTab() : renderLoteriaTab()}
+        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='eggwheel' ? renderEggWheelTab() : casinoTab==='vida' ? renderVidaTab() : renderLoteriaTab()}
       </div>
     `;
   }
@@ -3855,6 +3874,102 @@ function closeSlotMachine(){
   slotResultText = '';
   slotResultClass = '';
   render();
+}
+
+function renderVidaTab(){
+  return `
+    <div class="slot-cabinet">
+      <div class="slot-cabinet-inner">
+        <div class="slot-marquee">${Array.from({length:9}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
+        <div class="slot-title">❤️ TRAGAPERRAS DE LA VIDA</div>
+        <div class="slot-sub">Jugando: ${NAMES[casinoPlayer]} · coste ${VIDA_SPIN_COST} tickets por tirada</div>
+
+        <div class="slot-machine-row">
+          <div class="slot-screen" id="vida-screen">
+            ${vidaReels.map((s,i)=>`<div class="slot-reel ${vidaSpinning?'spinning':''}" id="vida-reel-${i}">${s}</div>`).join('')}
+          </div>
+          <div class="slot-lever-wrap" onclick="pullVidaLever()">
+            <div class="slot-lever-track">
+              <div class="slot-lever-ball ${vidaSpinning?'pulled':''}" id="vida-lever-ball"></div>
+            </div>
+            <div class="slot-lever-label">TIRA<br>DE AQUÍ</div>
+          </div>
+        </div>
+
+        <div class="slot-result ${vidaResultClass||''}" id="vida-result">${vidaResultText||''}</div>
+
+        <div class="slot-paytable">
+          <div class="slot-paytable-item"><span>❤️❤️❤️</span><span>Ganas 1 vida</span><span>99%</span></div>
+          <div class="slot-paytable-item"><span>💀💀💀</span><span>Pierdes 20 vidas</span><span>1%</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function pullVidaLever(){
+  if(vidaSpinning) return;
+  if((tickets[casinoPlayer]||0) < VIDA_SPIN_COST){
+    vidaResultText = `No tienes suficientes tickets (necesitas ${VIDA_SPIN_COST}).`;
+    vidaResultClass = 'lose';
+    render();
+    return;
+  }
+  vidaSpinning = true;
+  vidaResultText = '';
+  vidaResultClass = '';
+  render();
+  playSound('lever');
+
+  await addTickets(casinoPlayer, -VIDA_SPIN_COST, 'Tirada de la tragaperras de la vida');
+
+  const win = Math.random() >= 0.01; // 99% gana, 1% pierde 20 vidas
+  const finalSymbol = win ? '❤️' : '💀';
+  const fillerSymbols = ['❤️','💀','💔','✨'];
+
+  const spinTimers = [0,1,2].map((reelIdx)=> setInterval(()=>{
+    const el = document.getElementById(`vida-reel-${reelIdx}`);
+    if(el) el.textContent = fillerSymbols[Math.floor(Math.random()*fillerSymbols.length)];
+  }, 55));
+
+  [400, 650, 900].forEach((delay, reelIdx)=>{
+    setTimeout(()=>{
+      clearInterval(spinTimers[reelIdx]);
+      const el = document.getElementById(`vida-reel-${reelIdx}`);
+      if(el){
+        el.textContent = finalSymbol;
+        el.classList.remove('spinning');
+        el.classList.remove('landed');
+        void el.offsetWidth;
+        el.classList.add('landed');
+      }
+      vidaReels[reelIdx] = finalSymbol;
+      playSound('reelStop');
+    }, delay);
+  });
+
+  setTimeout(async ()=>{
+    vidaSpinning = false;
+    const t = casinoPlayer;
+    if(win){
+      hearts[t] = Math.min(hearts[t]+1, 20);
+      pushHistory(`❤️ ${NAMES[t]} ganó 1 vida en la tragaperras de la vida (${hearts[t]}/20)`);
+      vidaResultText = `❤️ ¡Ganas 1 vida! ${pickLine(WIN_REACTIONS)}`;
+      vidaResultClass = 'win';
+      playSound('win');
+      fireConfetti({ count: 90 });
+    } else {
+      hearts[t] = Math.max(hearts[t]-20, -1);
+      pushHistory(`💀 ${NAMES[t]} perdió 20 vidas en la tragaperras de la vida (${hearts[t]}/20)`);
+      vidaResultText = `💀 Mala suerte, pierdes 20 vidas. ${pickLine(LOSE_REACTIONS)}`;
+      vidaResultClass = 'lose';
+      playSound('curse');
+      playSound('heartbreak');
+    }
+    render();
+    const ok = await saveProfile(t);
+    if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
+  }, 1000);
 }
 
 function pickWeighted(list){
@@ -6685,7 +6800,7 @@ async function deleteTradeRecord(id){
   render();
   showNewsPopupIfAny();
   setInterval(async ()=>{
-    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing || finalWheelSpinningWinner || finalWheelSpinningLoser || match1LoserWheelSpinning || sancionWheelSpinning || eggWheelSpinning) return; // don't refresh mid-edit or mid-spin
+    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing || finalWheelSpinningWinner || finalWheelSpinningLoser || match1LoserWheelSpinning || sancionWheelSpinning || eggWheelSpinning || vidaSpinning) return; // don't refresh mid-edit or mid-spin
     const changed = await loadAll();
     if(changed) render(); // si no ha cambiado nada, nos ahorramos reconstruir toda la pantalla
   }, 6000);
