@@ -673,6 +673,75 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .dex-slot.seen:hover{ transform: translateY(-3px); box-shadow: 0 0 14px rgba(143,255,192,0.35), 0 8px 16px rgba(0,0,0,0.4); border-color:#8fffc0; }
 .dex-num{ display:block; font-size:9px; color: rgba(143,255,192,0.65); margin-top:2px; font-family:'JetBrains Mono', monospace; }
+
+/* ---------- FINAL ---------- */
+.final-gate{
+  max-width: 380px; margin: 60px auto; text-align:center;
+  background: linear-gradient(165deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border: 1px solid var(--border); border-top: 3px solid var(--gold);
+  border-radius: 20px; padding: 40px 26px;
+}
+.final-gate-icon{ font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(201,168,106,0.4)); }
+.final-gate-title{
+  font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 30px; letter-spacing:3px;
+  color: var(--gold); margin-bottom: 10px;
+}
+.final-gate-sub{ font-size: 12px; color: var(--silver-dim); margin-bottom: 20px; line-height:1.5; }
+.final-gate-input{
+  width: 100%; box-sizing:border-box; background: var(--panel-2); border:1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; color: var(--silver-bright); font-size:14px;
+  margin-bottom: 12px; text-align:center;
+}
+
+.final-reveal{ text-align:center; max-width: 620px; margin: 0 auto; }
+.final-reveal-title{
+  font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 26px; letter-spacing:3px;
+  color: var(--gold); margin-bottom: 24px; text-shadow: 0 0 20px rgba(201,168,106,0.4);
+}
+.final-cat-grid{ display:flex; gap: 16px; justify-content:center; flex-wrap:wrap; margin-bottom: 24px; }
+.final-cat-card{
+  width: 160px; min-height: 150px; border-radius: 16px; padding: 18px 12px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+}
+.final-cat-card.pending{
+  background: var(--panel); border: 1px dashed var(--border); color: var(--silver-dim); font-size: 36px;
+  animation: pulseRing 2s ease-in-out infinite;
+}
+.final-cat-card.revealed{
+  background: linear-gradient(165deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border: 1px solid var(--gold); box-shadow: 0 0 24px rgba(201,168,106,0.25);
+  animation: floatIn .5s cubic-bezier(.2,.85,.3,1) both;
+}
+.final-cat-icon{ font-size: 30px; }
+.final-cat-label{ font-size: 11px; color: var(--silver-dim); letter-spacing:.3px; }
+.final-cat-winner{ font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 18px; color: var(--gold); margin-top:2px; }
+.final-cat-value{ font-size: 10px; color: var(--silver-dim); }
+
+.final-podium-title{
+  font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 22px; letter-spacing:2px;
+  color: var(--silver-bright); margin: 10px 0 20px; animation: floatIn .5s ease both;
+}
+.final-podium{ display:flex; align-items:flex-end; justify-content:center; gap: 12px; }
+.podium-step{
+  width: 110px; border-radius: 14px 14px 0 0; padding: 16px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  animation: floatIn .5s cubic-bezier(.2,.85,.3,1) both;
+}
+.podium-step.p1{
+  height: 170px; background: linear-gradient(165deg, rgba(201,168,106,0.28), var(--panel));
+  border: 1px solid var(--gold); box-shadow: 0 0 30px rgba(201,168,106,0.35); order:2;
+}
+.podium-step.p2{
+  height: 130px; background: linear-gradient(165deg, rgba(159,178,218,0.2), var(--panel));
+  border: 1px solid var(--silver-dim); order:1;
+}
+.podium-step.p3{
+  height: 100px; background: linear-gradient(165deg, rgba(201,134,90,0.2), var(--panel));
+  border: 1px solid #c9865a; order:3;
+}
+.podium-medal{ font-size: 30px; }
+.podium-name{ font-family:'Rajdhani',sans-serif; font-weight:800; font-size:15px; color: var(--silver-bright); }
+.podium-score{ font-size: 11px; color: var(--silver-dim); }
 .dex-slot.unseen .dex-num{ color: var(--silver-dim); }
 .err-msg{ color: var(--danger); font-size: 12px; margin-top: 6px; min-height: 14px; }
 
@@ -1696,6 +1765,7 @@ footer{
     <button class="nav-btn" data-nav="normas" onclick="go('normas')">Normas</button>
     <button class="nav-btn" data-nav="casino" onclick="go('casino')">🎰 Casino</button>
     <button class="nav-btn" data-nav="pokedex" onclick="go('pokedex')">📖 Pokédex</button>
+    <button class="nav-btn" data-nav="final" onclick="go('final')">🏁 FINAL</button>
   </nav>
 </header>
 
@@ -2337,6 +2407,21 @@ let duelCountdownInterval = null;
 let view = 'home';
 let currentTrainer = null;
 let loaded = false;
+let finalState = null; // { unlocked, categories:[id,id,id], results:[{id,winner,value}], pointsAwarded } o null
+let finalPasswordInput = '';
+let finalRevealStep = 0; // 0 = nada mostrado, va subiendo con la animacion
+const FINAL_PASSWORD = 'w alets';
+const FINAL_CATEGORY_POOL = [
+  { id:'champion',  label:'Campeón de combates',      icon:'🏆', compute:(t)=> combatWinsOf(t), unit:'combates ganados' },
+  { id:'richest',   label:'El más rico',               icon:'💰', compute:(t)=> money[t]||0, unit:'monedas' },
+  { id:'hunter',    label:'El mejor cazador',          icon:'🎯', compute:(t)=> allMonsOf(t).length, unit:'Pokémon capturados' },
+  { id:'clumsy',    label:'El más torpe',              icon:'🪦', compute:(t)=> (graveyard[t]||[]).length, unit:'Pokémon caídos' },
+  { id:'shiny',     label:'Suerte de shiny',           icon:'✨', compute:(t)=> allMonsOf(t).filter(m=>m.shiny).length, unit:'shinies encontrados' },
+  { id:'badges',    label:'El más veterano',           icon:'🏅', compute:(t)=> gymBadgeCountOf(t), unit:'medallas' },
+  { id:'tickets',   label:'El más rico en fichas',     icon:'🎟️', compute:(t)=> tickets[t]||0, unit:'tickets' },
+  { id:'dex',       label:'El enciclopedista',         icon:'📖', compute:(t)=> new Set(allMonsOf(t).map(m=>(m.speciesName||'').toLowerCase())).size, unit:'especies distintas' },
+  { id:'strongest', label:'El equipo más potente',     icon:'💪', compute:(t)=> Math.max(0, ...allMonsOf(t).filter(m=>m.inTeam && m.level!=null).map(m=>m.level), 0), unit:'nivel máximo' },
+];
 let lastLoadSignature = null; // para saber si el ultimo loadAll() trajo algo distinto de verdad
 
 let POKEMON_NAMES = [];
@@ -2416,7 +2501,7 @@ async function trackedStoreSet(flightKey, storageKey, value){
 }
 
 async function loadAll(){
-  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, duelBetsResult, challengeResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
+  const [profileResults, historyResult, tradesResult, duelResult, duelHistoryResult, duelBetsResult, challengeResult, finalResult, normasResult, sancionResult, loteriaResult, collectionResults, graveyardResults, manualFaintedResults] = await Promise.all([
     Promise.all(TRAINERS.map(t => storeGet('x:profile:'+t, {hearts:20, team:[], tickets:0, pendingPrizes:[], dailyBonusDate:null, money:0, badges:0, locationName:null}))),
     storeGet('x:history', []),
     storeGet('x:trades', {active:[], history:[]}),
@@ -2424,6 +2509,7 @@ async function loadAll(){
     storeGet('x:duelHistory', []),
     storeGet('x:duelBets', { match1: [], final: [] }),
     storeGet('x:challenge', null),
+    storeGet('x:finalState', null),
     storeGet('x:normas', []),
     storeGet('x:sancion', { offender: null, prize: null }),
     storeGet('x:loteria', { pot: 0, entries: [], history: [] }),
@@ -2454,6 +2540,7 @@ async function loadAll(){
   if(!saveInFlight['duelHistory']) duelHistory = duelHistoryResult;
   if(!saveInFlight['duelBets']) duelBets = duelBetsResult;
   if(!saveInFlight['challenge']) challengeState = challengeResult;
+  if(!saveInFlight['finalState']) finalState = finalResult;
   if(!saveInFlight['normas']) normas = normasResult;
   if(!saveInFlight['sancion']) sancionState = sancionResult;
   if(!saveInFlight['loteria']) loteria = loteriaResult;
@@ -2514,6 +2601,9 @@ async function saveDuelBets(){
 }
 async function saveChallengeState(){
   return await trackedStoreSet('challenge', 'x:challenge', challengeState);
+}
+async function saveFinalState(){
+  return await trackedStoreSet('finalState', 'x:finalState', finalState);
 }
 
 const DUEL_BET_CHIPS = [5, 10, 20, 50];
@@ -2859,6 +2949,7 @@ function render(){
   if(view === 'normas') return renderNormas(app);
   if(view === 'casino') return renderCasino(app);
   if(view === 'pokedex') return renderPokedex(app);
+  if(view === 'final') return renderFinal(app);
 }
 
 // Combates ganados = veces que ha sido campeón final de un torneo (duelHistory).
@@ -3265,6 +3356,154 @@ function renderPokedex(app){
     </div>
   `;
 }
+let finalRevealStarted = false;
+
+function renderFinal(app){
+  if(!finalState || !finalState.unlocked){
+    app.innerHTML = renderFinalPasswordGate();
+    return;
+  }
+  if(!finalRevealStarted){
+    finalRevealStarted = true;
+    startFinalReveal();
+  }
+  app.innerHTML = renderFinalReveal();
+}
+
+function renderFinalPasswordGate(){
+  return `
+    <div class="final-gate">
+      <div class="final-gate-icon">🏁</div>
+      <div class="final-gate-title">FINAL</div>
+      <div class="final-gate-sub">Introduce la contraseña para desbloquear el cierre de la partida — se abre para siempre, para los tres.</div>
+      <input type="password" id="final-password-input" class="final-gate-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter') tryUnlockFinal()">
+      <button class="primary" onclick="tryUnlockFinal()">Desbloquear</button>
+      <div class="err-msg" id="final-gate-err"></div>
+    </div>
+  `;
+}
+
+async function tryUnlockFinal(){
+  const input = document.getElementById('final-password-input');
+  const err = document.getElementById('final-gate-err');
+  if(!input) return;
+  if(input.value.trim().toLowerCase() !== FINAL_PASSWORD){
+    err.textContent = 'Contraseña incorrecta.';
+    return;
+  }
+  if(finalState && finalState.unlocked) return; // ya estaba desbloqueado, no repetir el sorteo
+
+  const pool = [...FINAL_CATEGORY_POOL];
+  const chosen = [];
+  while(chosen.length < 3 && pool.length > 0){
+    const idx = Math.floor(Math.random()*pool.length);
+    chosen.push(pool.splice(idx,1)[0]);
+  }
+  const results = chosen.map(cat=>{
+    let bestT = null, bestV = -Infinity;
+    TRAINERS.forEach(t=>{
+      const v = cat.compute(t);
+      if(v > bestV){ bestV = v; bestT = t; }
+    });
+    return { id: cat.id, winner: bestT, value: bestV };
+  });
+  finalState = { unlocked: true, categories: chosen.map(c=>c.id), results, pointsAwarded: false };
+  render();
+  const ok = await saveFinalState();
+  if(!ok) queueRetry('finalState', saveFinalState);
+  await awardFinalPoints();
+}
+
+async function awardFinalPoints(){
+  if(!finalState || finalState.pointsAwarded) return;
+  for(const r of finalState.results){
+    const cat = FINAL_CATEGORY_POOL.find(c=>c.id===r.id);
+    duelHistory.unshift({
+      id: crypto.randomUUID(),
+      name: `FINAL: ${cat.label}`,
+      date: new Date().toISOString(),
+      match1: null, final: null,
+      champion: r.winner,
+      isFinalBonus: true,
+    });
+  }
+  const ok1 = await saveDuelHistory();
+  if(!ok1) queueRetry('duelHistory', saveDuelHistory);
+  finalState.pointsAwarded = true;
+  render();
+  const ok2 = await saveFinalState();
+  if(!ok2) queueRetry('finalState', saveFinalState);
+}
+
+function startFinalReveal(){
+  finalRevealStep = 0;
+  render();
+  const totalCats = finalState.categories.length;
+  const steps = totalCats + 1; // +1 para el podio final
+  let i = 0;
+  function next(){
+    i++;
+    finalRevealStep = i;
+    if(i <= totalCats){
+      playSound('reelStop');
+      fireConfetti({ count: 100 });
+    } else {
+      playSound('bigwin');
+      fireConfetti({ count: 260 });
+    }
+    render();
+    if(i < steps) setTimeout(next, 2600);
+  }
+  setTimeout(next, 1200);
+}
+function skipFinalReveal(){
+  finalRevealStep = finalState.categories.length + 1;
+  render();
+}
+
+function renderFinalReveal(){
+  const cats = finalState.categories.map(id => FINAL_CATEGORY_POOL.find(c=>c.id===id));
+  const results = finalState.results;
+  const revealedCount = Math.min(finalRevealStep, cats.length);
+  const showPodium = finalRevealStep > cats.length;
+
+  const catCards = cats.map((cat,i)=>{
+    if(i >= revealedCount) return `<div class="final-cat-card pending">❓</div>`;
+    const r = results[i];
+    return `
+      <div class="final-cat-card revealed">
+        <div class="final-cat-icon">${cat.icon}</div>
+        <div class="final-cat-label">${cat.label}</div>
+        <div class="final-cat-winner">${NAMES[r.winner]}</div>
+        <div class="final-cat-value">${r.value} ${cat.unit}</div>
+      </div>
+    `;
+  }).join('');
+
+  let podiumHtml = '';
+  if(showPodium){
+    const ranked = [...TRAINERS].sort((a,b)=> combatWinsOf(b) - combatWinsOf(a) || (hearts[b]||0)-(hearts[a]||0));
+    const [r1,r2,r3] = ranked;
+    podiumHtml = `
+      <div class="final-podium-title">🏁 CIERRE DE LA PARTIDA 🏁</div>
+      <div class="final-podium">
+        ${r2?`<div class="podium-step p2"><div class="podium-medal">🥈</div><div class="podium-name">${NAMES[r2]}</div><div class="podium-score">${combatWinsOf(r2)} pts</div></div>`:''}
+        <div class="podium-step p1"><div class="podium-medal">🥇</div><div class="podium-name">${NAMES[r1]}</div><div class="podium-score">${combatWinsOf(r1)} pts</div></div>
+        ${r3?`<div class="podium-step p3"><div class="podium-medal">🥉</div><div class="podium-name">${NAMES[r3]}</div><div class="podium-score">${combatWinsOf(r3)} pts</div></div>`:''}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="final-reveal">
+      <div class="final-reveal-title">🏁 FINAL 🏁</div>
+      <div class="final-cat-grid">${catCards}</div>
+      ${!showPodium ? `<div class="modal-actions" style="justify-content:center;"><button class="ghost" onclick="skipFinalReveal()">Saltar animación</button></div>` : ''}
+      ${podiumHtml}
+    </div>
+  `;
+}
+
 function openDexSpeciesDetail(id){
   const name = SPECIES_NAMES[id] || `#${id}`;
   const owners = TRAINERS.map(t => ({
