@@ -673,75 +673,6 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 }
 .dex-slot.seen:hover{ transform: translateY(-3px); box-shadow: 0 0 14px rgba(143,255,192,0.35), 0 8px 16px rgba(0,0,0,0.4); border-color:#8fffc0; }
 .dex-num{ display:block; font-size:9px; color: rgba(143,255,192,0.65); margin-top:2px; font-family:'JetBrains Mono', monospace; }
-
-/* ---------- FINAL ---------- */
-.final-gate{
-  max-width: 380px; margin: 60px auto; text-align:center;
-  background: linear-gradient(165deg, var(--panel) 0%, var(--bg-elev) 100%);
-  border: 1px solid var(--border); border-top: 3px solid var(--gold);
-  border-radius: 20px; padding: 40px 26px;
-}
-.final-gate-icon{ font-size: 48px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(201,168,106,0.4)); }
-.final-gate-title{
-  font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 30px; letter-spacing:3px;
-  color: var(--gold); margin-bottom: 10px;
-}
-.final-gate-sub{ font-size: 12px; color: var(--silver-dim); margin-bottom: 20px; line-height:1.5; }
-.final-gate-input{
-  width: 100%; box-sizing:border-box; background: var(--panel-2); border:1px solid var(--border);
-  border-radius: 10px; padding: 10px 14px; color: var(--silver-bright); font-size:14px;
-  margin-bottom: 12px; text-align:center;
-}
-
-.final-reveal{ text-align:center; max-width: 620px; margin: 0 auto; }
-.final-reveal-title{
-  font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 26px; letter-spacing:3px;
-  color: var(--gold); margin-bottom: 24px; text-shadow: 0 0 20px rgba(201,168,106,0.4);
-}
-.final-cat-grid{ display:flex; gap: 16px; justify-content:center; flex-wrap:wrap; margin-bottom: 24px; }
-.final-cat-card{
-  width: 160px; min-height: 150px; border-radius: 16px; padding: 18px 12px;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-}
-.final-cat-card.pending{
-  background: var(--panel); border: 1px dashed var(--border); color: var(--silver-dim); font-size: 36px;
-  animation: pulseRing 2s ease-in-out infinite;
-}
-.final-cat-card.revealed{
-  background: linear-gradient(165deg, var(--panel) 0%, var(--bg-elev) 100%);
-  border: 1px solid var(--gold); box-shadow: 0 0 24px rgba(201,168,106,0.25);
-  animation: floatIn .5s cubic-bezier(.2,.85,.3,1) both;
-}
-.final-cat-icon{ font-size: 30px; }
-.final-cat-label{ font-size: 11px; color: var(--silver-dim); letter-spacing:.3px; }
-.final-cat-winner{ font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 18px; color: var(--gold); margin-top:2px; }
-.final-cat-value{ font-size: 10px; color: var(--silver-dim); }
-
-.final-podium-title{
-  font-family:'Rajdhani',sans-serif; font-weight:800; font-size: 22px; letter-spacing:2px;
-  color: var(--silver-bright); margin: 10px 0 20px; animation: floatIn .5s ease both;
-}
-.final-podium{ display:flex; align-items:flex-end; justify-content:center; gap: 12px; }
-.podium-step{
-  width: 110px; border-radius: 14px 14px 0 0; padding: 16px 8px;
-  display:flex; flex-direction:column; align-items:center; gap:4px;
-  animation: floatIn .5s cubic-bezier(.2,.85,.3,1) both;
-}
-.podium-step.p1{
-  height: 170px; background: linear-gradient(165deg, rgba(201,168,106,0.28), var(--panel));
-  border: 1px solid var(--gold); box-shadow: 0 0 30px rgba(201,168,106,0.35); order:2;
-}
-.podium-step.p2{
-  height: 130px; background: linear-gradient(165deg, rgba(159,178,218,0.2), var(--panel));
-  border: 1px solid var(--silver-dim); order:1;
-}
-.podium-step.p3{
-  height: 100px; background: linear-gradient(165deg, rgba(201,134,90,0.2), var(--panel));
-  border: 1px solid #c9865a; order:3;
-}
-.podium-medal{ font-size: 30px; }
-.podium-name{ font-family:'Rajdhani',sans-serif; font-weight:800; font-size:15px; color: var(--silver-bright); }
-.podium-score{ font-size: 11px; color: var(--silver-dim); }
 .dex-slot.unseen .dex-num{ color: var(--silver-dim); }
 .err-msg{ color: var(--danger); font-size: 12px; margin-top: 6px; min-height: 14px; }
 
@@ -927,6 +858,103 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
   animation: floatIn .4s ease both;
 }
 .prize-result.good{ border-color: var(--gold); color: var(--gold); box-shadow: 0 0 20px rgba(201,168,106,0.25); }
+
+/* ---------- FINAL (subpágina con contraseña) ---------- */
+.final-gate{
+  max-width: 380px; margin: 60px auto 0; text-align:center;
+  animation: floatIn .4s ease both;
+}
+.final-gate-icon{
+  font-size: 46px; margin-bottom: 8px;
+  animation: sparkTwinkle 2.4s ease-in-out infinite;
+}
+.final-gate-title{
+  font-family:'Rajdhani', sans-serif; font-weight:700; font-size: 26px; letter-spacing:4px;
+  color: var(--silver-bright); text-transform:uppercase;
+}
+.final-gate-sub{
+  font-size: 13px; color: var(--silver-dim); margin-top: 8px; line-height:1.6;
+}
+.final-header{ text-align:center; margin-bottom: 26px; animation: floatIn .4s ease both; }
+.final-header .final-gate-icon{ font-size: 40px; }
+
+@keyframes shakeX{
+  0%,100%{ transform: translateX(0); }
+  20%,60%{ transform: translateX(-6px); }
+  40%,80%{ transform: translateX(6px); }
+}
+.shake{ animation: shakeX .4s ease; border-color: var(--danger) !important; }
+
+.final-cat-card{
+  max-width: 460px; margin: 0 auto 22px;
+  background: linear-gradient(160deg, var(--panel) 0%, var(--bg-elev) 100%);
+  border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px 22px;
+  text-align:center;
+  animation: floatIn .5s ease both;
+  position:relative; overflow:hidden;
+}
+.final-cat-card::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--gold));
+}
+.final-cat-icon{ font-size: 30px; margin-bottom: 4px; animation: sparkTwinkle 2.2s ease-in-out infinite; }
+.final-cat-label{
+  font-family:'Rajdhani', sans-serif; font-weight:700; font-size: 18px; letter-spacing:1px;
+  color: var(--silver-bright);
+}
+.final-cat-unit{ font-size: 11px; color: var(--silver-dim); letter-spacing:1px; margin-bottom: 16px; text-transform:uppercase; }
+
+.final-cat-row{
+  display:flex; align-items:center; gap: 10px; margin-bottom: 10px;
+}
+.final-cat-name{
+  width: 70px; text-align:right; font-family:'Rajdhani', sans-serif; font-weight:600;
+  font-size: 13px; color: var(--silver-dim); letter-spacing:.5px; flex-shrink:0;
+}
+.final-cat-row.winner .final-cat-name{ color: var(--gold); }
+.final-cat-bar-track{
+  flex:1; height:10px; border-radius:6px; background: var(--bg);
+  border: 1px solid var(--border); overflow:hidden;
+}
+.final-cat-bar{
+  height:100%; border-radius:6px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  animation: growBar .9s cubic-bezier(.16,.84,.44,1) both;
+  width: var(--pct);
+}
+.final-cat-row.winner .final-cat-bar{
+  background: linear-gradient(90deg, #a3823f, var(--gold));
+  box-shadow: 0 0 12px rgba(201,168,106,0.5);
+}
+@keyframes growBar{
+  from{ width:0%; }
+  to{ width: var(--pct); }
+}
+.final-cat-value{
+  width: 56px; text-align:left; font-family:'JetBrains Mono', monospace; font-size: 13px;
+  color: var(--silver-bright); flex-shrink:0;
+}
+.final-cat-winner-line{
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);
+  font-family:'Rajdhani', sans-serif; font-weight:600; letter-spacing:.5px;
+  color: var(--gold); font-size: 14px;
+  animation: sparkTwinkle 2.4s ease-in-out infinite;
+}
+
+.final-controls{ text-align:center; margin: 10px 0 30px; }
+.final-done-note{
+  color: var(--silver-dim); font-size: 13px; letter-spacing:.5px;
+}
+
+.final-podium-wrap{ animation: floatIn .5s ease both; margin-top: 8px; }
+.final-podium{ margin-top: 14px; }
+.final-podium-card{ cursor:default; }
+.final-podium-card:hover{ transform:none; box-shadow:none; }
+.final-summary-note{
+  text-align:center; color: var(--silver-dim); font-size: 12px; margin-top: 18px; letter-spacing:.5px;
+}
+.t-bonus{ color: var(--gold); }
 
 /* Bracket */
 .bracket{
@@ -1261,7 +1289,6 @@ button.ghost:hover{ color:var(--silver-bright); border-color: var(--accent-dim);
 .hall-card.g-slots .hall-card-bulbs .slot-bulb{ background: var(--neon-pink); box-shadow: 0 0 6px var(--neon-pink); }
 .hall-card.g-roulette .hall-card-bulbs .slot-bulb{ background: var(--neon-cyan); box-shadow: 0 0 6px var(--neon-cyan); }
 .hall-card.g-loteria .hall-card-bulbs .slot-bulb{ background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
-.hall-card.g-vida .hall-card-bulbs .slot-bulb{ background: var(--danger); box-shadow: 0 0 6px var(--danger); }
 
 .casino-floor-hint{
   text-align:center; margin-top: 26px; font-size:12px; color: var(--silver-dim); letter-spacing:.5px;
@@ -2306,12 +2333,6 @@ let slotJackpotQueue = 0; // cuantos jackpots mas quedan por resolver (tiradas x
 let slotJackpotSpinning = false;
 let slotJackpotRotation = 0;
 
-const VIDA_SPIN_COST = 100;
-let vidaSpinning = false;
-let vidaReels = ['❤️','❤️','❤️'];
-let vidaResultText = '';
-let vidaResultClass = '';
-
 const ROULETTE_WHEEL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 const ROULETTE_RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 function rouletteColorOf(n){ if(n===0) return 'green'; return ROULETTE_RED.has(n) ? 'red' : 'black'; }
@@ -2611,6 +2632,192 @@ async function saveChallengeState(){
 }
 async function saveFinalState(){
   return await trackedStoreSet('finalState', 'x:finalState', finalState);
+}
+
+/* ================================================================
+   FINAL — reparto de estrellas especiales (estilo Mario Party).
+   Se calculan las 9 categorías posibles, se descartan las que
+   queden empatadas a máximo valor y, de las que sí tienen un
+   ganador claro, se eligen 3 al azar. Esas 3 "estrellas" no son
+   estrellas de verdad: son puntos que se suman directo al marcador
+   de combates (Temporizador → Marcador).
+   ================================================================ */
+function shuffleArr(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function evaluateFinalCategoryPool(){
+  return FINAL_CATEGORY_POOL.map(cat=>{
+    const values = {}; TRAINERS.forEach(t=> values[t] = cat.compute(t));
+    const maxVal = Math.max(...TRAINERS.map(t=> values[t]));
+    const winners = TRAINERS.filter(t=> values[t] === maxVal);
+    return { cat, values, maxVal, winners, decisive: winners.length === 1 };
+  });
+}
+function pickFinalCategories(){
+  const all = evaluateFinalCategoryPool();
+  const decisive = all.filter(c=> c.decisive);
+  // caso normal: hay al menos 3 categorías con ganador claro -> elegimos 3 al azar entre esas
+  // caso extremo (muy improbable): rellenamos con las que queden, aunque estén empatadas
+  const pool = decisive.length >= 3 ? decisive : [...decisive, ...shuffleArr(all.filter(c=>!c.decisive))];
+  const picked = shuffleArr(pool).slice(0, 3);
+  return picked.map(c=> ({
+    id: c.cat.id, label: c.cat.label, icon: c.cat.icon, unit: c.cat.unit,
+    values: c.values, value: c.maxVal, winners: c.winners,
+    winner: c.winners.length===1 ? c.winners[0] : null,
+  }));
+}
+async function submitFinalPassword(){
+  const input = document.getElementById('final-password-input');
+  const err = document.getElementById('final-password-err');
+  const val = (input ? input.value : '').trim();
+  if(val.toLowerCase() !== FINAL_PASSWORD.toLowerCase()){
+    if(err) err.textContent = 'Contraseña incorrecta.';
+    playSound('lose');
+    if(input){
+      input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake');
+      input.value = '';
+    }
+    return;
+  }
+  if(err) err.textContent = '';
+  // por si alguien más la ha desbloqueado justo antes que nosotros, comprobamos
+  // el estado real del servidor antes de generar uno nuevo
+  const existing = await storeGet('x:finalState', null);
+  if(existing && existing.unlocked){
+    finalState = existing;
+  } else {
+    const categories = pickFinalCategories();
+    const pointsAwarded = {}; TRAINERS.forEach(t=> pointsAwarded[t]=0);
+    categories.forEach(c=> (c.winners||[]).forEach(t=> pointsAwarded[t] = (pointsAwarded[t]||0)+1));
+    finalState = { unlocked:true, categories, pointsAwarded, unlockedAt: Date.now() };
+    pushHistory('🏁 Se ha desbloqueado LA FINAL: reparto de estrellas especiales del torneo.');
+    const ok = await saveFinalState();
+    if(!ok) queueRetry('finalState', saveFinalState);
+  }
+  finalRevealStep = 0;
+  playSound('bigwin');
+  fireConfetti({count: 160});
+  render();
+}
+let _finalJustRevealed = false;
+function advanceFinalReveal(){
+  finalRevealStep = (finalRevealStep||0) + 1;
+  _finalJustRevealed = true;
+  render();
+}
+function renderFinalCategoryCard(cat, idx){
+  const maxVal = Math.max(1, ...TRAINERS.map(t=> cat.values[t]));
+  const isTie = !cat.winner;
+  const rows = [...TRAINERS].sort((a,b)=> cat.values[b]-cat.values[a]).map(t=>{
+    const v = cat.values[t];
+    const pct = Math.round((v/maxVal)*100);
+    const won = cat.winners.includes(t);
+    return `
+      <div class="final-cat-row ${won?'winner':''}">
+        <div class="final-cat-name">${won?'⭐ ':''}${NAMES[t]}</div>
+        <div class="final-cat-bar-track"><div class="final-cat-bar" style="--pct:${pct}%"></div></div>
+        <div class="final-cat-value">${v.toLocaleString('es-ES')}</div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="final-cat-card" style="animation-delay:${idx*0.05}s;">
+      <div class="final-cat-icon">${cat.icon}</div>
+      <div class="final-cat-label">${cat.label}</div>
+      <div class="final-cat-unit">${cat.unit}</div>
+      ${rows}
+      <div class="final-cat-winner-line">${isTie
+        ? `🤝 Empate entre ${cat.winners.map(t=>NAMES[t]).join(' y ')}`
+        : `⭐ ${NAMES[cat.winner]} se lleva la estrella`}</div>
+    </div>
+  `;
+}
+function renderFinalPodium(){
+  const pts = finalState.pointsAwarded || {};
+  const ranked = [...TRAINERS].sort((a,b)=> (pts[b]||0)-(pts[a]||0));
+  const order = [ranked[1], ranked[0], ranked[2]].filter(Boolean);
+  return `
+    <div class="final-podium-wrap">
+      <div class="section-sub" style="text-align:center;margin-bottom:6px;">🏆 Podio de estrellas de LA FINAL</div>
+      <div class="podium final-podium">
+        ${order.map(t=>{
+          const rank = ranked.indexOf(t)+1;
+          const medal = rank===1?'gold':rank===2?'silver':'bronze';
+          const icon = rank===1?'🥇':rank===2?'🥈':'🥉';
+          return `
+          <div class="profile-card rank-${rank} final-podium-card">
+            <div class="medal-badge ${medal}">${icon}</div>
+            <div class="trainer-name">${NAMES[t]}</div>
+            <div class="hearts-count">${pts[t]||0}<small>⭐</small></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="final-summary-note">Estas estrellas ya se han sumado al marcador de combates de cada uno.</div>
+    </div>
+  `;
+}
+function renderFinal(app){
+  if(!finalState || !finalState.unlocked){
+    app.innerHTML = `
+      <div class="final-gate">
+        <div class="final-gate-icon">🏁</div>
+        <div class="final-gate-title">La Final</div>
+        <div class="final-gate-sub">Introduce la contraseña para desbloquear el reparto de estrellas especiales. En cuanto se ponga, se abre para todo el mundo.</div>
+        <div class="field" style="max-width:260px;margin:18px auto 0;">
+          <input type="password" id="final-password-input" placeholder="Contraseña" autocomplete="off" onkeydown="if(event.key==='Enter') submitFinalPassword();">
+        </div>
+        <div class="err-msg" id="final-password-err"></div>
+        <button class="primary" onclick="submitFinalPassword()">Desbloquear</button>
+      </div>
+    `;
+    const inp = document.getElementById('final-password-input');
+    if(inp) inp.focus();
+    return;
+  }
+
+  const cats = finalState.categories;
+  const totalSteps = cats.length + 1; // +1 = podio final
+  const step = Math.min(finalRevealStep||0, totalSteps);
+
+  let html = `
+    <div class="final-header">
+      <div class="final-gate-icon">🏁</div>
+      <div class="final-gate-title">La Final</div>
+      <div class="final-gate-sub">Estrellas especiales — se suman directo al marcador de combates</div>
+    </div>
+  `;
+  for(let i=0;i<cats.length;i++){
+    if(i < step) html += renderFinalCategoryCard(cats[i], i);
+  }
+  if(step >= totalSteps) html += renderFinalPodium();
+
+  html += `<div class="final-controls">`;
+  if(step < totalSteps){
+    const label = step===0 ? '🏁 Empezar' : (step===cats.length ? '🏆 Ver podio final' : 'Siguiente ▶');
+    html += `<button class="primary" onclick="advanceFinalReveal()">${label}</button>`;
+  } else {
+    html += `<div class="final-done-note">🎉 ¡Reparto completado!</div>`;
+  }
+  html += `</div>`;
+
+  app.innerHTML = html;
+
+  if(_finalJustRevealed){
+    _finalJustRevealed = false;
+    if(step > 0 && step <= cats.length){
+      const cat = cats[step-1];
+      playSound(cat.winner ? 'win' : 'bonus');
+      fireConfetti({count: 100});
+    } else if(step === totalSteps){
+      playSound('jackpot');
+      fireConfetti({count: 280});
+    }
+  }
 }
 
 const DUEL_BET_CHIPS = [5, 10, 20, 50];
@@ -3363,154 +3570,6 @@ function renderPokedex(app){
     </div>
   `;
 }
-let finalRevealStarted = false;
-
-function renderFinal(app){
-  if(!finalState || !finalState.unlocked){
-    app.innerHTML = renderFinalPasswordGate();
-    return;
-  }
-  if(!finalRevealStarted){
-    finalRevealStarted = true;
-    startFinalReveal();
-  }
-  app.innerHTML = renderFinalReveal();
-}
-
-function renderFinalPasswordGate(){
-  return `
-    <div class="final-gate">
-      <div class="final-gate-icon">🏁</div>
-      <div class="final-gate-title">FINAL</div>
-      <div class="final-gate-sub">Introduce la contraseña para desbloquear el cierre de la partida — se abre para siempre, para los tres.</div>
-      <input type="password" id="final-password-input" class="final-gate-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter') tryUnlockFinal()">
-      <button class="primary" onclick="tryUnlockFinal()">Desbloquear</button>
-      <div class="err-msg" id="final-gate-err"></div>
-    </div>
-  `;
-}
-
-async function tryUnlockFinal(){
-  const input = document.getElementById('final-password-input');
-  const err = document.getElementById('final-gate-err');
-  if(!input) return;
-  if(input.value.trim().toLowerCase() !== FINAL_PASSWORD){
-    err.textContent = 'Contraseña incorrecta.';
-    return;
-  }
-  if(finalState && finalState.unlocked) return; // ya estaba desbloqueado, no repetir el sorteo
-
-  const pool = [...FINAL_CATEGORY_POOL];
-  const chosen = [];
-  while(chosen.length < 3 && pool.length > 0){
-    const idx = Math.floor(Math.random()*pool.length);
-    chosen.push(pool.splice(idx,1)[0]);
-  }
-  const results = chosen.map(cat=>{
-    let bestT = null, bestV = -Infinity;
-    TRAINERS.forEach(t=>{
-      const v = cat.compute(t);
-      if(v > bestV){ bestV = v; bestT = t; }
-    });
-    return { id: cat.id, winner: bestT, value: bestV };
-  });
-  finalState = { unlocked: true, categories: chosen.map(c=>c.id), results, pointsAwarded: false };
-  render();
-  const ok = await saveFinalState();
-  if(!ok) queueRetry('finalState', saveFinalState);
-  await awardFinalPoints();
-}
-
-async function awardFinalPoints(){
-  if(!finalState || finalState.pointsAwarded) return;
-  for(const r of finalState.results){
-    const cat = FINAL_CATEGORY_POOL.find(c=>c.id===r.id);
-    duelHistory.unshift({
-      id: crypto.randomUUID(),
-      name: `FINAL: ${cat.label}`,
-      date: new Date().toISOString(),
-      match1: null, final: null,
-      champion: r.winner,
-      isFinalBonus: true,
-    });
-  }
-  const ok1 = await saveDuelHistory();
-  if(!ok1) queueRetry('duelHistory', saveDuelHistory);
-  finalState.pointsAwarded = true;
-  render();
-  const ok2 = await saveFinalState();
-  if(!ok2) queueRetry('finalState', saveFinalState);
-}
-
-function startFinalReveal(){
-  finalRevealStep = 0;
-  render();
-  const totalCats = finalState.categories.length;
-  const steps = totalCats + 1; // +1 para el podio final
-  let i = 0;
-  function next(){
-    i++;
-    finalRevealStep = i;
-    if(i <= totalCats){
-      playSound('reelStop');
-      fireConfetti({ count: 100 });
-    } else {
-      playSound('bigwin');
-      fireConfetti({ count: 260 });
-    }
-    render();
-    if(i < steps) setTimeout(next, 2600);
-  }
-  setTimeout(next, 1200);
-}
-function skipFinalReveal(){
-  finalRevealStep = finalState.categories.length + 1;
-  render();
-}
-
-function renderFinalReveal(){
-  const cats = finalState.categories.map(id => FINAL_CATEGORY_POOL.find(c=>c.id===id));
-  const results = finalState.results;
-  const revealedCount = Math.min(finalRevealStep, cats.length);
-  const showPodium = finalRevealStep > cats.length;
-
-  const catCards = cats.map((cat,i)=>{
-    if(i >= revealedCount) return `<div class="final-cat-card pending">❓</div>`;
-    const r = results[i];
-    return `
-      <div class="final-cat-card revealed">
-        <div class="final-cat-icon">${cat.icon}</div>
-        <div class="final-cat-label">${cat.label}</div>
-        <div class="final-cat-winner">${NAMES[r.winner]}</div>
-        <div class="final-cat-value">${r.value} ${cat.unit}</div>
-      </div>
-    `;
-  }).join('');
-
-  let podiumHtml = '';
-  if(showPodium){
-    const ranked = [...TRAINERS].sort((a,b)=> combatWinsOf(b) - combatWinsOf(a) || (hearts[b]||0)-(hearts[a]||0));
-    const [r1,r2,r3] = ranked;
-    podiumHtml = `
-      <div class="final-podium-title">🏁 CIERRE DE LA PARTIDA 🏁</div>
-      <div class="final-podium">
-        ${r2?`<div class="podium-step p2"><div class="podium-medal">🥈</div><div class="podium-name">${NAMES[r2]}</div><div class="podium-score">${combatWinsOf(r2)} pts</div></div>`:''}
-        <div class="podium-step p1"><div class="podium-medal">🥇</div><div class="podium-name">${NAMES[r1]}</div><div class="podium-score">${combatWinsOf(r1)} pts</div></div>
-        ${r3?`<div class="podium-step p3"><div class="podium-medal">🥉</div><div class="podium-name">${NAMES[r3]}</div><div class="podium-score">${combatWinsOf(r3)} pts</div></div>`:''}
-      </div>
-    `;
-  }
-
-  return `
-    <div class="final-reveal">
-      <div class="final-reveal-title">🏁 FINAL 🏁</div>
-      <div class="final-cat-grid">${catCards}</div>
-      ${!showPodium ? `<div class="modal-actions" style="justify-content:center;"><button class="ghost" onclick="skipFinalReveal()">Saltar animación</button></div>` : ''}
-      ${podiumHtml}
-    </div>
-  `;
-}
-
 function openDexSpeciesDetail(id){
   const name = SPECIES_NAMES[id] || `#${id}`;
   const owners = TRAINERS.map(t => ({
@@ -3668,16 +3727,6 @@ function renderCasinoFloor(){
             </div>
           </div>
         </div>
-        <div class="hall-card g-vida" onclick="openCasinoZone('vida')">
-          <div class="hall-card-border">
-            <div class="hall-card-inner">
-              <div class="hall-card-icon">❤️</div>
-              <div class="hall-card-title">Tragaperras de la Vida</div>
-              <div class="hall-card-sub">100 tickets · un toque de suerte</div>
-              <div class="hall-card-bulbs">${Array.from({length:5}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
-            </div>
-          </div>
-        </div>
         <div class="hall-card g-eggwheel" onclick="openCasinoZone('eggwheel')">
           <div class="hall-card-border">
             <div class="hall-card-inner">
@@ -3705,7 +3754,6 @@ function openCasinoZone(tab){
   else if(tab==='blackjack'){ casinoModeLine = pickLine(BLACKJACK_LINES); bjState = { phase:'bet', playerCards:[], dealerCards:[], hideDealer:true, resultText:'', resultClass:'' }; }
   else if(tab==='nueve'){ casinoModeLine = pickLine(NINE_LINES); nineState = { phase:'bet', playerCards:[], bankerCards:[], choice:null, resultText:'', resultClass:'' }; }
   else if(tab==='eggwheel'){ eggWheelResult = null; }
-  else if(tab==='vida'){ vidaResultText = ''; vidaResultClass = ''; vidaReels = ['❤️','❤️','❤️']; casinoModeLine = pickLine(SLOT_PICKER_LINES); }
   render();
 }
 
@@ -3734,7 +3782,6 @@ function mascotContext(){
   if(casinoTab==='blackjack') return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   if(casinoTab==='nueve')     return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   if(casinoTab==='eggwheel')  return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
-  if(casinoTab==='vida')      return { img: CHARIZARD_IMG.roulette, line: casinoModeLine };
   return null;
 }
 
@@ -3767,7 +3814,7 @@ function renderCasino(app){
       </div>
 
       <div id="casino-content">
-        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='eggwheel' ? renderEggWheelTab() : casinoTab==='vida' ? renderVidaTab() : renderLoteriaTab()}
+        ${casinoTab==='slots' ? renderSlotsTab() : casinoTab==='roulette' ? renderRouletteTab() : casinoTab==='blackjack' ? renderBlackjackTab() : casinoTab==='nueve' ? renderNineTab() : casinoTab==='eggwheel' ? renderEggWheelTab() : renderLoteriaTab()}
       </div>
     `;
   }
@@ -3874,102 +3921,6 @@ function closeSlotMachine(){
   slotResultText = '';
   slotResultClass = '';
   render();
-}
-
-function renderVidaTab(){
-  return `
-    <div class="slot-cabinet">
-      <div class="slot-cabinet-inner">
-        <div class="slot-marquee">${Array.from({length:9}).map(()=>`<div class="slot-bulb"></div>`).join('')}</div>
-        <div class="slot-title">❤️ TRAGAPERRAS DE LA VIDA</div>
-        <div class="slot-sub">Jugando: ${NAMES[casinoPlayer]} · coste ${VIDA_SPIN_COST} tickets por tirada</div>
-
-        <div class="slot-machine-row">
-          <div class="slot-screen" id="vida-screen">
-            ${vidaReels.map((s,i)=>`<div class="slot-reel ${vidaSpinning?'spinning':''}" id="vida-reel-${i}">${s}</div>`).join('')}
-          </div>
-          <div class="slot-lever-wrap" onclick="pullVidaLever()">
-            <div class="slot-lever-track">
-              <div class="slot-lever-ball ${vidaSpinning?'pulled':''}" id="vida-lever-ball"></div>
-            </div>
-            <div class="slot-lever-label">TIRA<br>DE AQUÍ</div>
-          </div>
-        </div>
-
-        <div class="slot-result ${vidaResultClass||''}" id="vida-result">${vidaResultText||''}</div>
-
-        <div class="slot-paytable">
-          <div class="slot-paytable-item"><span>❤️❤️❤️</span><span>Ganas 1 vida</span><span>99%</span></div>
-          <div class="slot-paytable-item"><span>💀💀💀</span><span>Pierdes 20 vidas</span><span>1%</span></div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-async function pullVidaLever(){
-  if(vidaSpinning) return;
-  if((tickets[casinoPlayer]||0) < VIDA_SPIN_COST){
-    vidaResultText = `No tienes suficientes tickets (necesitas ${VIDA_SPIN_COST}).`;
-    vidaResultClass = 'lose';
-    render();
-    return;
-  }
-  vidaSpinning = true;
-  vidaResultText = '';
-  vidaResultClass = '';
-  render();
-  playSound('lever');
-
-  await addTickets(casinoPlayer, -VIDA_SPIN_COST, 'Tirada de la tragaperras de la vida');
-
-  const win = Math.random() >= 0.01; // 99% gana, 1% pierde 20 vidas
-  const finalSymbol = win ? '❤️' : '💀';
-  const fillerSymbols = ['❤️','💀','💔','✨'];
-
-  const spinTimers = [0,1,2].map((reelIdx)=> setInterval(()=>{
-    const el = document.getElementById(`vida-reel-${reelIdx}`);
-    if(el) el.textContent = fillerSymbols[Math.floor(Math.random()*fillerSymbols.length)];
-  }, 55));
-
-  [400, 650, 900].forEach((delay, reelIdx)=>{
-    setTimeout(()=>{
-      clearInterval(spinTimers[reelIdx]);
-      const el = document.getElementById(`vida-reel-${reelIdx}`);
-      if(el){
-        el.textContent = finalSymbol;
-        el.classList.remove('spinning');
-        el.classList.remove('landed');
-        void el.offsetWidth;
-        el.classList.add('landed');
-      }
-      vidaReels[reelIdx] = finalSymbol;
-      playSound('reelStop');
-    }, delay);
-  });
-
-  setTimeout(async ()=>{
-    vidaSpinning = false;
-    const t = casinoPlayer;
-    if(win){
-      hearts[t] = Math.min(hearts[t]+1, 20);
-      pushHistory(`❤️ ${NAMES[t]} ganó 1 vida en la tragaperras de la vida (${hearts[t]}/20)`);
-      vidaResultText = `❤️ ¡Ganas 1 vida! ${pickLine(WIN_REACTIONS)}`;
-      vidaResultClass = 'win';
-      playSound('win');
-      fireConfetti({ count: 90 });
-    } else {
-      hearts[t] = Math.max(hearts[t]-20, -1);
-      pushHistory(`💀 ${NAMES[t]} perdió 20 vidas en la tragaperras de la vida (${hearts[t]}/20)`);
-      vidaResultText = `💀 Mala suerte, pierdes 20 vidas. ${pickLine(LOSE_REACTIONS)}`;
-      vidaResultClass = 'lose';
-      playSound('curse');
-      playSound('heartbreak');
-    }
-    render();
-    const ok = await saveProfile(t);
-    if(!ok) queueRetry('profile:'+t, ()=>saveProfile(t));
-  }, 1000);
 }
 
 function pickWeighted(list){
@@ -5502,6 +5453,8 @@ function spinMatch1LoserWheel(){
 function renderDuelTallyAndHistory(){
   const tally = {}; TRAINERS.forEach(t=> tally[t]=0);
   duelHistory.forEach(d=>{ if(tally[d.champion] !== undefined) tally[d.champion]++; });
+  const finalBonus = (finalState && finalState.unlocked && finalState.pointsAwarded) ? finalState.pointsAwarded : {};
+  TRAINERS.forEach(t=> tally[t] += (finalBonus[t]||0));
   const maxWins = Math.max(...TRAINERS.map(t=> tally[t]));
 
   return `
@@ -5510,7 +5463,7 @@ function renderDuelTallyAndHistory(){
       ${TRAINERS.map(t=>`
         <div class="t-item ${maxWins>0 && tally[t]===maxWins?'leader':''}">
           <div class="t-wins">${tally[t]}</div>
-          <div class="t-name">${NAMES[t]}</div>
+          <div class="t-name">${NAMES[t]}${finalBonus[t]?` <span class="t-bonus">(+${finalBonus[t]} FINAL)</span>`:''}</div>
         </div>
       `).join('')}
     </div>
@@ -6800,7 +6753,7 @@ async function deleteTradeRecord(id){
   render();
   showNewsPopupIfAny();
   setInterval(async ()=>{
-    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing || finalWheelSpinningWinner || finalWheelSpinningLoser || match1LoserWheelSpinning || sancionWheelSpinning || eggWheelSpinning || vidaSpinning) return; // don't refresh mid-edit or mid-spin
+    if(document.getElementById('modal-overlay') || duelSpinning || rouletteSpinning || slotSpinning || slotJackpotSpinning || loteriaDrawing || bjDealing || nineDealing || finalWheelSpinningWinner || finalWheelSpinningLoser || match1LoserWheelSpinning || sancionWheelSpinning || eggWheelSpinning || (view==='final' && finalState && finalState.unlocked)) return; // don't refresh mid-edit, mid-spin, o mientras se está revelando LA FINAL
     const changed = await loadAll();
     if(changed) render(); // si no ha cambiado nada, nos ahorramos reconstruir toda la pantalla
   }, 6000);
