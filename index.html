@@ -6181,9 +6181,47 @@ function readPokemon(rawSlot, hasBattleStats) {
   const level = hasBattleStats ? dec[0xec] : null;
   const exp = view.getUint32(0x10, true);
   const pid = view.getUint32(0x18, true);
-  const heldItem = view.getUint16(0x0a, true); // OJO: offset sin verificar del todo, ver aviso arriba
+  const heldItemId = view.getUint16(0x0a, true); // offset estandar PK6 (0x0A); igual que species+2, coherente con el resto del bloque A
   const abilityId = dec[0x14]; // CONFIRMADO por fuerza bruta contra save real (Julio 2026)
   const natureId = dec[0x1c]; // CONFIRMADO por fuerza bruta contra save real (Julio 2026)
+
+  // --- NUEVO (sin verificar contra save real todavia, cotejar como se hizo
+  // con nature/ability antes de fiarse del todo): genero/forma/EVs/IVs/moves.
+  // Offsets segun estructura PK6 documentada (misma que usa PKHeX).
+  const flagsByte = dec[0x1d]; // bit0 encuentro fortuito, bits1-2 genero, bits3-7 forma
+  const fatefulEncounter = (flagsByte & 0x01) !== 0;
+  const genderRaw = (flagsByte >> 1) & 0x03; // 0 = macho, 1 = hembra, 2 = sin genero
+  const gender = genderRaw === 0 ? 'M' : genderRaw === 1 ? 'F' : null;
+  const formId = (flagsByte >> 3) & 0x1f;
+
+  const evs = {
+    hp: dec[0x1e], atk: dec[0x1f], def: dec[0x20],
+    spa: dec[0x21], spd: dec[0x22], spe: dec[0x23],
+  };
+
+  const moves = [
+    view.getUint16(0x58, true),
+    view.getUint16(0x5a, true),
+    view.getUint16(0x5c, true),
+    view.getUint16(0x5e, true),
+  ];
+  const movePP = [dec[0x60], dec[0x61], dec[0x62], dec[0x63]];
+
+  const iv32 = view.getUint32(0x74, true);
+  const ivs = {
+    hp:  iv32 & 0x1f,
+    atk: (iv32 >>> 5) & 0x1f,
+    def: (iv32 >>> 10) & 0x1f,
+    spa: (iv32 >>> 15) & 0x1f,
+    spd: (iv32 >>> 20) & 0x1f,
+    spe: (iv32 >>> 25) & 0x1f,
+    isEgg: !!((iv32 >>> 30) & 0x1),
+    isNicknamed: !!((iv32 >>> 31) & 0x1),
+  };
+  // Amistad: en el equipo suele estar en el bloque de combate (relativo a
+  // hasBattleStats), en 0xEE segun estructura estandar. Sin verificar aun.
+  const friendship = hasBattleStats ? dec[0xee] : null;
+
   // PS actual/max: solo existen en el bloque de combate que llevan los del
   // equipo (hasBattleStats), las cajas no los tienen -> confirmado contra
   // save real (offset 0xF0 = PS actual, 0xF2 = PS max).
@@ -6196,9 +6234,17 @@ function readPokemon(rawSlot, hasBattleStats) {
     level,
     exp,
     pid: '0x' + pid.toString(16),
-    heldItem, // no fiable todavia
+    heldItemId,
     abilityId,
     natureId,
+    gender,
+    formId,
+    fatefulEncounter,
+    evs,
+    ivs,
+    moves,
+    movePP,
+    friendship,
     hpCurrent,
     hpMax,
   };
@@ -6257,6 +6303,99 @@ function parseXYSave(buffer) {
 }
 
 const NATURE_NAMES_ES = ['Fuerte','Huraña','Audaz','Firme','Pícara','Osada','Dócil','Plácida','Agitada','Floja','Miedosa','Activa','Seria','Alegre','Ingenua','Modesta','Afable','Mansa','Tímida','Alocada','Serena','Amable','Grosera','Cauta','Rara'];
+// Nombres en ingles, en el MISMO orden que NATURE_NAMES_ES (indice = natureId).
+// Hace falta esta version en ingles para el formato de exportacion de
+// Pokemon Showdown, que no entiende nombres en español.
+const NATURE_NAMES_EN = ['Hardy','Lonely','Brave','Bold','Adamant','Naughty','Docile','Loyal','Impish','Lax','Timid','Hasty','Serious','Jolly','Naive','Modest','Mild','Quiet','Bashful','Rash','Calm','Gentle','Sassy','Careful','Quirky'];
+
+/* ================================================================
+   FORMATO POKEMON SHOWDOWN — resuelve nombres de habilidad/objeto/
+   movimiento contra PokeAPI (cacheados) y monta el texto que se
+   pega en el "Import" del team builder de Showdown.
+
+   IMPORTANTE: los offsets de EVs/IVs/movimientos/genero son NUEVOS
+   (no verificados contra un save real todavia, a diferencia de
+   especie/habilidad/naturaleza que si se cotejaron a mano). Antes
+   de fiaros del todo, comparad el resultado de un Pokemon conocido
+   contra lo que dice PKHeX para ese mismo Pokemon, igual que se hizo
+   con nature/ability.
+   ================================================================ */
+const __pokeApiNameCache = {}; // "ability:123" -> "Sturdy" (o promesa mientras carga)
+
+async function fetchPokeApiName(kind, id) {
+  if (!id) return null;
+  const key = `${kind}:${id}`;
+  if (__pokeApiNameCache[key]) return __pokeApiNameCache[key];
+  const promise = fetch(`https://pokeapi.co/api/v2/${kind}/${id}`)
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data) return null;
+      const en = (data.names || []).find(n => n.language?.name === 'en');
+      return en ? en.name : (data.name || null);
+    })
+    .catch(() => null);
+  __pokeApiNameCache[key] = promise;
+  const name = await promise;
+  __pokeApiNameCache[key] = name; // sustituye la promesa por el valor resuelto
+  return name;
+}
+
+function toShowdownGender(mon) {
+  return mon.gender === 'M' ? ' (M)' : mon.gender === 'F' ? ' (F)' : '';
+}
+
+async function pokemonToShowdownText(mon, levelOverride) {
+  const [abilityName, itemName, ...moveNames] = await Promise.all([
+    fetchPokeApiName('ability', mon.abilityId),
+    mon.heldItemId ? fetchPokeApiName('item', mon.heldItemId) : Promise.resolve(null),
+    ...mon.moves.map(id => id ? fetchPokeApiName('move', id) : Promise.resolve(null)),
+  ]);
+
+  const nickname = mon.nickname && mon.nickname !== mon.speciesName ? mon.nickname : null;
+  const header = nickname
+    ? `${nickname} (${mon.speciesName})${toShowdownGender(mon)}`
+    : `${mon.speciesName}${toShowdownGender(mon)}`;
+  const itemLine = itemName ? ` @ ${itemName}` : '';
+
+  const lines = [header + itemLine];
+  if (abilityName) lines.push(`Ability: ${abilityName}`);
+  // Showdown recalcula las estadisticas segun el nivel que le pongamos aqui;
+  // no hace falta tocar nada mas (EVs/IVs/nature ya hacen su efecto solos).
+  const effectiveLevel = levelOverride ?? mon.level;
+  if (effectiveLevel && effectiveLevel !== 100) lines.push(`Level: ${effectiveLevel}`);
+  if (mon.friendship != null) lines.push(`Happiness: ${mon.friendship}`);
+
+  const evParts = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
+    .filter(k => mon.evs[k] > 0)
+    .map(k => `${mon.evs[k]} ${({hp:'HP',atk:'Atk',def:'Def',spa:'SpA',spd:'SpD',spe:'Spe'})[k]}`);
+  if (evParts.length) lines.push(`EVs: ${evParts.join(' / ')}`);
+
+  const natureName = NATURE_NAMES_EN[mon.natureId] ?? 'Hardy';
+  lines.push(`${natureName} Nature`);
+
+  const ivParts = ['hp', 'atk', 'def', 'spa', 'spd', 'spe']
+    .filter(k => mon.ivs[k] < 31)
+    .map(k => `${mon.ivs[k]} ${({hp:'HP',atk:'Atk',def:'Def',spa:'SpA',spd:'SpD',spe:'Spe'})[k]}`);
+  if (ivParts.length) lines.push(`IVs: ${ivParts.join(' / ')}`);
+
+  moveNames.filter(Boolean).forEach(m => lines.push(`- ${m}`));
+
+  return lines.join('\n');
+}
+
+async function copyTeamAsShowdown(team, levelOverride) {
+  toast('Consultando nombres (PokeAPI)…');
+  try {
+    const texts = await Promise.all(team.map(mon => pokemonToShowdownText(mon, levelOverride)));
+    const full = texts.join('\n\n');
+    await navigator.clipboard.writeText(full);
+    toast(levelOverride
+      ? `Equipo copiado a Nv.${levelOverride} (Showdown) ✅`
+      : 'Equipo copiado en formato Showdown ✅');
+  } catch (e) {
+    toast('No se ha podido copiar: ' + (e.message || e));
+  }
+}
 
 /* ================================================================
    IMPORTAR DESDE SAVE — sube el archivo "main" (Pokémon X/Y en
@@ -6308,6 +6447,8 @@ async function handleSaveFile(t, file){
       </div>
       <div class="modal-actions">
         <button class="ghost" onclick="closeModal()">Cancelar</button>
+        <button class="ghost" onclick="copyTeamAsShowdown(window.__lastSaveImport.result.party)">📋 Copiar equipo (Showdown)</button>
+        <button class="ghost" onclick="copyTeamAsShowdown(window.__lastSaveImport.result.party, 50)">📋 Copiar equipo (Nv.50)</button>
         <button class="primary" id="save-import-confirm" onclick="confirmImportTeam('${t}')">Sustituir equipo por este (${result.party.length})</button>
       </div>
     `;
