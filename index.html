@@ -6155,10 +6155,12 @@ function decryptPk6(rawSlot) {
 }
 
 function readNickname(dec) {
-  // 24 bytes UTF-16LE a partir de offset 0x40 del bloque descifrado
+  // 26 bytes UTF-16LE a partir de offset 0x40 del bloque descifrado (13
+  // unidades = 12 caracteres + terminador nulo). OJO: antes se leian solo
+  // 24 bytes; con nombres largos (12 caracteres) se podia perder el ultimo.
   const view = new DataView(dec.buffer);
   let out = '';
-  for (let i = 0x40; i < 0x40 + 24; i += 2) {
+  for (let i = 0x40; i < 0x40 + 26; i += 2) {
     const code = view.getUint16(i, true);
     if (code === 0) break;
     out += String.fromCharCode(code);
@@ -6200,14 +6202,14 @@ function readPokemon(rawSlot, hasBattleStats) {
   };
 
   const moves = [
-    view.getUint16(0x58, true),
     view.getUint16(0x5a, true),
     view.getUint16(0x5c, true),
     view.getUint16(0x5e, true),
+    view.getUint16(0x60, true),
   ];
-  const movePP = [dec[0x60], dec[0x61], dec[0x62], dec[0x63]];
+  const movePP = [dec[0x62], dec[0x63], dec[0x64], dec[0x65]];
 
-  const iv32 = view.getUint32(0x74, true);
+  const iv32 = view.getUint32(0x76, true);
   const ivs = {
     hp:  iv32 & 0x1f,
     atk: (iv32 >>> 5) & 0x1f,
@@ -6411,11 +6413,31 @@ function openImportSave(t){
       Sube el archivo <strong>main</strong> de tu partida de Pokémon X/Y (Azahar/Citra, 415.232 bytes)
       y se leerá tu equipo actual automáticamente.
     </p>
-    <input type="file" id="save-file-input" style="margin-bottom:14px;color:var(--silver-dim);">
+    <div id="save-drop-zone" style="border:2px dashed var(--border);border-radius:12px;padding:24px 14px;text-align:center;margin-bottom:14px;cursor:pointer;transition:border-color .15s,background .15s;">
+      <div style="font-size:13px;color:var(--silver-dim);">📂 Arrastra aquí el archivo <strong>main</strong>,<br>o haz clic para buscarlo</div>
+      <input type="file" id="save-file-input" style="display:none;">
+    </div>
     <div class="err-msg" id="save-import-err"></div>
     <div id="save-import-preview"></div>
   `);
-  document.getElementById('save-file-input').addEventListener('change', (e)=> handleSaveFile(t, e.target.files[0]));
+  const input = document.getElementById('save-file-input');
+  const dropZone = document.getElementById('save-drop-zone');
+  input.addEventListener('change', (e)=> handleSaveFile(t, e.target.files[0]));
+  dropZone.addEventListener('click', ()=> input.click());
+  ['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    dropZone.style.borderColor = 'var(--gold, #d4af37)';
+    dropZone.style.background = 'rgba(212,175,55,0.08)';
+  }));
+  ['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    dropZone.style.borderColor = 'var(--border)';
+    dropZone.style.background = 'transparent';
+  }));
+  dropZone.addEventListener('drop', (e)=>{
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(file) handleSaveFile(t, file);
+  });
 }
 
 async function handleSaveFile(t, file){
