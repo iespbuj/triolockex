@@ -6196,9 +6196,13 @@ function readPokemon(rawSlot, hasBattleStats) {
   const gender = genderRaw === 0 ? 'M' : genderRaw === 1 ? 'F' : null;
   const formId = (flagsByte >> 3) & 0x1f;
 
+  // OJO orden real en el PK6: HP/Atk/Def/Spe/SpA/SpD (Speed va ANTES que
+  // los especiales aqui, aunque en pantalla siempre se muestre al reves).
+  // El orden anterior (spa/spd/spe) estaba MAL -- confirmado contra el
+  // codigo fuente de PKHeX (SAV6/PK6.cs): EV_SPE=0x21, EV_SPA=0x22, EV_SPD=0x23.
   const evs = {
     hp: dec[0x1e], atk: dec[0x1f], def: dec[0x20],
-    spa: dec[0x21], spd: dec[0x22], spe: dec[0x23],
+    spe: dec[0x21], spa: dec[0x22], spd: dec[0x23],
   };
 
   const moves = [
@@ -6209,20 +6213,31 @@ function readPokemon(rawSlot, hasBattleStats) {
   ];
   const movePP = [dec[0x62], dec[0x63], dec[0x64], dec[0x65]];
 
+  // Mismo orden real que en EVs: HP/Atk/Def/Spe/SpA/SpD dentro del uint32.
+  // El orden anterior (spa/spd/spe) estaba MAL por el mismo motivo -- fuente:
+  // PK6.cs IV_SPE=(IV32>>15), IV_SPA=(IV32>>20), IV_SPD=(IV32>>25).
   const iv32 = view.getUint32(0x76, true);
   const ivs = {
     hp:  iv32 & 0x1f,
     atk: (iv32 >>> 5) & 0x1f,
     def: (iv32 >>> 10) & 0x1f,
-    spa: (iv32 >>> 15) & 0x1f,
-    spd: (iv32 >>> 20) & 0x1f,
-    spe: (iv32 >>> 25) & 0x1f,
+    spe: (iv32 >>> 15) & 0x1f,
+    spa: (iv32 >>> 20) & 0x1f,
+    spd: (iv32 >>> 25) & 0x1f,
     isEgg: !!((iv32 >>> 30) & 0x1),
     isNicknamed: !!((iv32 >>> 31) & 0x1),
   };
-  // Amistad: en el equipo suele estar en el bloque de combate (relativo a
-  // hasBattleStats), en 0xEE segun estructura estandar. Sin verificar aun.
-  const friendship = hasBattleStats ? dec[0xee] : null;
+  // Amistad: el offset 0xEE que se probaba antes NO era correcto (daba
+  // siempre 0). El campo real es OriginalTrainerFriendship (0xCA) mientras
+  // el Pokemon no haya cambiado de entrenador; si CurrentHandler (0x93) no
+  // es 0 (se ha intercambiado), el valor vivo pasa a estar en
+  // HandlingTrainerFriendship (0xA2) en su lugar -- offsets confirmados
+  // contra el codigo fuente de PKHeX (PK6.cs) y contra un save real de
+  // Ultra Sol (mismo formato PK6/PK7). A diferencia del intento anterior,
+  // esto NO depende de hasBattleStats: el campo existe igual en los
+  // Pokemon guardados en caja, no es exclusivo del equipo activo.
+  const currentHandler = dec[0x93];
+  const friendship = currentHandler === 0 ? dec[0xca] : dec[0xa2];
 
   // PS actual/max: solo existen en el bloque de combate que llevan los del
   // equipo (hasBattleStats), las cajas no los tienen -> confirmado contra
